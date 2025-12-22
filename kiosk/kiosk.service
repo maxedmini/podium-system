@@ -1,0 +1,25 @@
+[Unit]
+Description=Podium Display Kiosk
+After=graphical.target network-online.target
+Wants=graphical.target network-online.target
+
+[Service]
+Type=simple
+User={{USER}}
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/{{USER}}/.Xauthority
+
+ExecStartPre=/bin/sleep 6
+ExecStartPre=/usr/bin/xset s off
+ExecStartPre=/usr/bin/xset s noblank
+ExecStartPre=/usr/bin/xset -dpms
+ExecStartPre=/usr/bin/unclutter -idle 0
+
+ExecStart=/usr/local/bin/kiosk-launch.sh
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+
