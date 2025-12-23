@@ -1576,26 +1576,32 @@ def admin():
             if ext not in allowed_exts:
                 message = "Offline fallback must be an image (svg/png/jpg/gif/webp)"
             else:
-                try:
-                    ok_dir, err_dir = ensure_local_offline_dir()
-                    if not ok_dir:
-                        raise PermissionError(err_dir or "Unable to create /opt/kiosk-fallback; try running: sudo mkdir -p /opt/kiosk-fallback && sudo chmod 775 /opt/kiosk-fallback")
+                ok_dir, err_dir = ensure_local_offline_dir()
+                if not ok_dir:
+                    message = err_dir or (
+                        "Unable to create /opt/kiosk-fallback; try running: "
+                        "sudo mkdir -p /opt/kiosk-fallback && sudo chmod 775 /opt/kiosk-fallback"
+                    )
+                else:
                     final_name = f"offline{ext}" if ext else OFFLINE_FALLBACK_DEFAULT_NAME
                     offline_path = OFFLINE_FALLBACK_DIR / final_name
-                    save_upload_with_sudo(offline_upload, offline_path)
-                    config["offline_fallback_filename"] = final_name
-                    write_offline_fallback_page(final_name)
-                    push_results = push_offline_fallback_to_pis(offline_path, OFFLINE_FALLBACK_HTML)
-                    failed = [r for r in push_results if not r.get("ok")]
-                    if failed:
-                        fail_hosts = "; ".join(
-                            f"{r.get('host', '?')}: {r.get('error') or 'unknown error'}" for r in failed
-                        )
-                        message = f"Offline fallback saved locally but failed to push: {fail_hosts}"
+                    try:
+                        save_upload_with_sudo(offline_upload, offline_path)
+                        config["offline_fallback_filename"] = final_name
+                        write_offline_fallback_page(final_name)
+                    except Exception as e:
+                        message = f"Failed to save offline fallback: {e}"
                     else:
-                        notes.append(f"Offline fallback updated and pushed ({ext.lstrip('.')})")
-                except Exception as e:
-                    message = f"Failed to save offline fallback: {e}"
+                        push_results = push_offline_fallback_to_pis(offline_path, OFFLINE_FALLBACK_HTML)
+                        failed = [r for r in push_results if not r.get("ok")]
+                        if failed:
+                            fail_hosts = "; ".join(
+                                f"{r.get('host', '?')}: {r.get('error') or 'unknown error'}"
+                                for r in failed
+                            )
+                            message = f"Offline fallback saved locally but failed to push: {fail_hosts}"
+                        else:
+                            notes.append(f"Offline fallback updated and pushed ({ext.lstrip('.')})")
 
         save_config()
         podium_cache["data"] = None
@@ -1845,5 +1851,3 @@ if __name__ == "__main__":
     print("🏆 PODIUM DISPLAY SERVER – STABLE FINAL")
     if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5001, debug=False)
-
-
