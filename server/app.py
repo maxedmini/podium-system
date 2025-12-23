@@ -161,25 +161,38 @@ def select_screensaver_image(pos: int) -> str | None:
 
 
 def write_offline_fallback_page(image_name: str | None = None) -> None:
-    """Ensure offline fallback assets exist with a black background that shows the image."""
     OFFLINE_FALLBACK_DIR.mkdir(parents=True, exist_ok=True)
-    img_name = image_name or config.get("offline_fallback_filename") or OFFLINE_FALLBACK_DEFAULT_NAME
-    html = """<!DOCTYPE html>
+    img_name = image_name or config.get("offline_fallback_filename")
+
+    html = f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>Offline fallback</title>
   <style>
-    html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }}
-    img {{ max-width: 90vw; max-height: 90vh; }}
+    html, body {{
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }}
+    img {{
+      max-width: 90vw;
+      max-height: 90vh;
+    }}
   </style>
 </head>
 <body>
-  <img src="/offline/{img}" alt="Offline fallback">
+  <img src="{img_name}" alt="Offline fallback">
 </body>
 </html>
-""".format(img=img_name)
+"""
     write_file_with_sudo(OFFLINE_FALLBACK_HTML, html)
+
 
 
 def ensure_local_offline_dir() -> tuple[bool, str]:
