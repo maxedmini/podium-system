@@ -867,6 +867,13 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
         last_seen = info.get("last_seen", 0.0) or 0.0
         age = now - last_seen if last_seen else float("inf")
         online = age < DISPLAY_HEARTBEAT_TTL if last_seen else False
+        kiosk_stats = kiosk_mode_stats.get(pos) or {
+            "fallback_count": 0,
+            "fallback_since": None,
+            "last_fallback_at": None,
+            "fallback_total_seconds": 0.0,
+            "last_fallback_duration": 0.0,
+        }
 
         # Derive what's currently intended to be on-screen.
         current = compute_display_view(pos, data)
@@ -892,6 +899,12 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
                 offline_start = (last_seen + DISPLAY_HEARTBEAT_TTL) if last_seen else now
                 stats["offline_since"] = offline_start
                 stats_changed = True
+                # If kiosk hasn't reported fallback, mirror the transition so UI reflects it.
+                if kiosk_stats and not kiosk_stats.get("fallback_since"):
+                    kiosk_stats["fallback_since"] = offline_start
+                    kiosk_stats["fallback_count"] = kiosk_stats.get("fallback_count", 0) + 1
+                    kiosk_stats["last_fallback_at"] = offline_start
+                    kiosk_mode_stats[pos] = kiosk_stats
         else:
             if offline_start:
                 duration = max(0.0, now - float(offline_start))
@@ -901,6 +914,14 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
                 stats["offline_since"] = None
                 offline_start = None
                 stats_changed = True
+                if kiosk_stats and kiosk_stats.get("fallback_since"):
+                    k_start = float(kiosk_stats.get("fallback_since") or offline_start or now)
+                    k_duration = max(0.0, now - k_start)
+                    kiosk_stats["fallback_total_seconds"] += k_duration
+                    kiosk_stats["last_fallback_duration"] = k_duration
+                    kiosk_stats["last_fallback_at"] = now
+                    kiosk_stats["fallback_since"] = None
+                    kiosk_mode_stats[pos] = kiosk_stats
 
         offline_elapsed = max(0.0, now - float(offline_start)) if offline_start else 0.0
         offline_since_str = datetime.fromtimestamp(offline_start).strftime("%H:%M:%S") if offline_start else "—"
@@ -911,13 +932,6 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
         if stats_changed:
             save_stats()
 
-        kiosk_stats = kiosk_mode_stats.get(pos) or {
-            "fallback_count": 0,
-            "fallback_since": None,
-            "last_fallback_at": None,
-            "fallback_total_seconds": 0.0,
-            "last_fallback_duration": 0.0,
-        }
         kiosk_since = kiosk_stats.get("fallback_since")
         kiosk_last_at = kiosk_stats.get("last_fallback_at")
         kiosk_total = kiosk_stats.get("fallback_total_seconds", 0.0)
