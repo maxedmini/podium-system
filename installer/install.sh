@@ -67,16 +67,12 @@ img{width:100vw;height:100vh;object-fit:contain}
 </style>
 </head>
 <body>
-<img src="offline.svg">
+<img src="offline.png">
 </body>
 </html>
 EOF
 
-cat > /opt/kiosk-fallback/offline.svg <<'EOF'
-<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080">
-  <rect width="100%" height="100%" fill="black"/>
-</svg>
-EOF
+sudo install -m 644 "$REPO_DIR/fallback/offline.png" /opt/kiosk-fallback/offline.png
 
 # Install kiosk launcher
 sudo install -m 755 "$REPO_DIR/kiosk/kiosk-launch.sh" /usr/local/bin/kiosk-launch.sh

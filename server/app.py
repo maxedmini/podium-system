@@ -29,7 +29,7 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 OFFLINE_FALLBACK_DIR = Path("/opt/kiosk-fallback")
-OFFLINE_FALLBACK_DEFAULT_NAME = "offline.svg"
+OFFLINE_FALLBACK_DEFAULT_NAME = "offline.png"
 OFFLINE_FALLBACK_HTML = OFFLINE_FALLBACK_DIR / "offline.html"
 OFFLINE_FALLBACK_FIELD = "offline_fallback_filename"
 
@@ -72,7 +72,7 @@ DEFAULT_CONFIG = {
     "pi_user": "pi",
     "pi_password": "",
     "ssh_key_path": "",
-    "offline_fallback_filename": "offline.svg",
+    "offline_fallback_filename": "offline.png",
 }
 
 config = dict(DEFAULT_CONFIG)
