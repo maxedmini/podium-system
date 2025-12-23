@@ -28,13 +28,13 @@ from werkzeug.utils import secure_filename
 # --------------------------------------------------
 
 app = Flask(__name__)
+OFFLINE_FALLBACK_DIR = Path("/opt/kiosk-fallback")
+OFFLINE_FALLBACK_DEFAULT_NAME = "offline.svg"
+OFFLINE_FALLBACK_HTML = OFFLINE_FALLBACK_DIR / "offline.html"
+
 # -------------------------------------------------------------------
 # Fallback asset serving (offline mode for kiosks)
 # -------------------------------------------------------------------
-
-FALLBACK_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "fallback")
-)
 
 @app.route("/offline/<path:filename>")
 def serve_offline_fallback(filename):
@@ -77,9 +77,6 @@ DEFAULT_CONFIG = {
 config = dict(DEFAULT_CONFIG)
 SCREENSAVER_TIMEOUT = 1 * 60  # seconds
 SCREENSAVER_DIR = Path("static/screensaver")
-OFFLINE_FALLBACK_DIR = Path("/opt/kiosk-fallback")
-OFFLINE_FALLBACK_DEFAULT_NAME = "offline.svg"
-OFFLINE_FALLBACK_HTML = OFFLINE_FALLBACK_DIR / "offline.html"
 HEARTBEAT_INTERVAL = 5  # seconds between heartbeats from displays
 DISPLAY_HEARTBEAT_WARN = 60  # age (s) before showing a warning
 DISPLAY_HEARTBEAT_TTL = 180  # age (s) until a display is considered offline
