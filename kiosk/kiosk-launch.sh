@@ -37,29 +37,31 @@ if [ "$PODIUM" = "1" ]; then
   done
 fi
 
-# Final decision for all podiums
-if curl -sf "$SERVER_URL" >/dev/null; then
-  URL="$SERVER_URL"
-else
-  URL="$FALLBACK_URL"
-fi
+while true; do
+  if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+    URL="$SERVER_URL"
+  else
+    URL="$FALLBACK_URL"
+  fi
 
+  /usr/bin/chromium \
+    --kiosk \
+    --window-size=1920,1080 \
+    --force-device-scale-factor=1 \
+    --no-sandbox \
+    --incognito \
+    --disable-cache \
+    --disk-cache-dir=/tmp/chromium-cache \
+    --user-data-dir=/tmp/chromium-profile \
+    --disable-infobars \
+    --disable-session-crashed-bubble \
+    --disable-restore-session-state \
+    --disable-component-update \
+    --disable-background-networking \
+    --disable-sync \
+    --noerrdialogs \
+    --autoplay-policy=no-user-gesture-required \
+    "$URL"
 
-exec /usr/bin/chromium \
-  --kiosk \
-  --window-size=1920,1080 \
-  --force-device-scale-factor=1 \
-  --no-sandbox \
-  --incognito \
-  --disable-cache \
-  --disk-cache-dir=/tmp/chromium-cache \
-  --user-data-dir=/tmp/chromium-profile \
-  --disable-infobars \
-  --disable-session-crashed-bubble \
-  --disable-restore-session-state \
-  --disable-component-update \
-  --disable-background-networking \
-  --disable-sync \
-  --noerrdialogs \
-  --autoplay-policy=no-user-gesture-required \
-  "$URL"
+  sleep 5
+done
