@@ -40,8 +40,10 @@ fi
 while true; do
   if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
     URL="$SERVER_URL"
+    MODE="LIVE"
   else
     URL="$FALLBACK_URL"
+    MODE="FALLBACK"
   fi
 
   /usr/bin/chromium \
@@ -65,11 +67,10 @@ while true; do
 
   CHROME_PID=$!
 
-  # Watchdog loop: check every 2s
   while kill -0 "$CHROME_PID" 2>/dev/null; do
     sleep 2
 
-    if ! curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+    if [ "$MODE" = "LIVE" ] && ! curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
       kill "$CHROME_PID"
       wait "$CHROME_PID" 2>/dev/null
       break
