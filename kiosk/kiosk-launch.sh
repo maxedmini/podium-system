@@ -61,7 +61,20 @@ while true; do
     --disable-sync \
     --noerrdialogs \
     --autoplay-policy=no-user-gesture-required \
-    "$URL"
+    "$URL" &
 
-  sleep 5
+  CHROME_PID=$!
+
+  # Watchdog loop: check every 2s
+  while kill -0 "$CHROME_PID" 2>/dev/null; do
+    sleep 2
+
+    if ! curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+      kill "$CHROME_PID"
+      wait "$CHROME_PID" 2>/dev/null
+      break
+    fi
+  done
+
+  sleep 1
 done
