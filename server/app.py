@@ -366,12 +366,25 @@ def sshpass_path() -> str | None:
     return shutil.which("sshpass") or ("/usr/bin/sshpass" if os.path.exists("/usr/bin/sshpass") else None)
 
 
+def ssh_binary(name: str) -> str | None:
+    """Return a usable ssh/scp path, if available."""
+    path = shutil.which(name)
+    if path:
+        return path
+    fallback = f"/usr/bin/{name}"
+    return fallback if os.path.exists(fallback) else None
+
+
 def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
     """Run a remote command over SSH using configured credentials."""
     user = (config.get("pi_user") or "pi").strip()
     target = host if "@" in host else f"{user}@{host}"
     key_path = os.path.expanduser(config.get("ssh_key_path") or "")
     password = config.get("pi_password", "").strip()
+
+    ssh_path = ssh_binary("ssh")
+    if not ssh_path:
+        return False, "ssh not installed on server"
 
     if password and not key_path:
         sshpass = sshpass_path()
@@ -381,7 +394,7 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
             sshpass,
             "-p",
             password,
-            "ssh",
+            ssh_path,
             "-o",
             "StrictHostKeyChecking=no",
             "-o",
@@ -391,7 +404,7 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
         ]
     else:
         cmd = [
-            "ssh",
+            ssh_path,
             "-o",
             "BatchMode=yes",
             "-o",
@@ -425,6 +438,10 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
     key_path = os.path.expanduser(config.get("ssh_key_path") or "")
     password = config.get("pi_password", "").strip()
 
+    scp_path = ssh_binary("scp")
+    if not scp_path:
+        return False, "scp not installed on server"
+
     if password and not key_path:
         sshpass = sshpass_path()
         if not sshpass:
@@ -433,7 +450,7 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
             sshpass,
             "-p",
             password,
-            "scp",
+            scp_path,
             "-o",
             "StrictHostKeyChecking=no",
             "-o",
@@ -441,7 +458,7 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
         ]
     else:
         cmd = [
-            "scp",
+            scp_path,
             "-o",
             "BatchMode=yes",
             "-o",
