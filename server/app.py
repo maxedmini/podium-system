@@ -274,19 +274,28 @@ def write_file_with_sudo(path: Path, content: str) -> None:
     except PermissionError:
         pass
 
+    sudo_bin = shutil.which("sudo")
+    if not sudo_bin:
+        for candidate in ("/usr/bin/sudo", "/bin/sudo", "/usr/local/bin/sudo"):
+            if Path(candidate).exists():
+                sudo_bin = candidate
+                break
+    if not sudo_bin:
+        raise PermissionError("sudo not found; install sudo or make /opt/kiosk-fallback writable")
+
     with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as tmp:
         tmp.write(content)
         tmp_path = Path(tmp.name)
     try:
         subprocess.run(
-            ["sudo", "-n", "cp", str(tmp_path), str(path)],
+            [sudo_bin, "-n", "cp", str(tmp_path), str(path)],
             capture_output=True,
             text=True,
             timeout=5,
             check=True,
         )
         subprocess.run(
-            ["sudo", "-n", "chmod", "664", str(path)],
+            [sudo_bin, "-n", "chmod", "664", str(path)],
             capture_output=True,
             text=True,
             timeout=5,
@@ -309,19 +318,28 @@ def save_upload_with_sudo(upload, dest_path: Path) -> None:
     except PermissionError:
         pass
 
+    sudo_bin = shutil.which("sudo")
+    if not sudo_bin:
+        for candidate in ("/usr/bin/sudo", "/bin/sudo", "/usr/local/bin/sudo"):
+            if Path(candidate).exists():
+                sudo_bin = candidate
+                break
+    if not sudo_bin:
+        raise PermissionError("sudo not found; install sudo or make /opt/kiosk-fallback writable")
+
     with tempfile.NamedTemporaryFile("wb", delete=False) as tmp:
         upload.save(tmp)
         tmp_path = Path(tmp.name)
     try:
         subprocess.run(
-            ["sudo", "-n", "cp", str(tmp_path), str(dest_path)],
+            [sudo_bin, "-n", "cp", str(tmp_path), str(dest_path)],
             capture_output=True,
             text=True,
             timeout=5,
             check=True,
         )
         subprocess.run(
-            ["sudo", "-n", "chmod", "664", str(dest_path)],
+            [sudo_bin, "-n", "chmod", "664", str(dest_path)],
             capture_output=True,
             text=True,
             timeout=5,
@@ -1898,5 +1916,4 @@ if __name__ == "__main__":
     print("🏆 PODIUM DISPLAY SERVER – STABLE FINAL")
     if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5001, debug=False)
-
 
