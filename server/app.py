@@ -361,18 +361,25 @@ def get_pi_hosts() -> list[str]:
     return hosts
 
 
+def executable_path(name: str, fallbacks: tuple[str, ...]) -> str | None:
+    """Return a usable executable path, if available."""
+    path = shutil.which(name)
+    if path and os.access(path, os.X_OK):
+        return path
+    for candidate in fallbacks:
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
 def sshpass_path() -> str | None:
     """Return a usable sshpass path, if available."""
-    return shutil.which("sshpass") or ("/usr/bin/sshpass" if os.path.exists("/usr/bin/sshpass") else None)
+    return executable_path("sshpass", ("/usr/bin/sshpass", "/bin/sshpass", "/usr/local/bin/sshpass"))
 
 
 def ssh_binary(name: str) -> str | None:
     """Return a usable ssh/scp path, if available."""
-    path = shutil.which(name)
-    if path:
-        return path
-    fallback = f"/usr/bin/{name}"
-    return fallback if os.path.exists(fallback) else None
+    return executable_path(name, (f"/usr/bin/{name}", f"/bin/{name}", f"/usr/local/bin/{name}"))
 
 
 def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
