@@ -32,6 +32,7 @@ OFFLINE_FALLBACK_DIR = Path("/opt/kiosk-fallback")
 OFFLINE_FALLBACK_DEFAULT_NAME = "offline.png"
 OFFLINE_FALLBACK_HTML = OFFLINE_FALLBACK_DIR / "offline.html"
 OFFLINE_FALLBACK_FIELD = "offline_fallback_filename"
+BASE_DIR = Path(__file__).resolve().parent
 
 # -------------------------------------------------------------------
 # Fallback asset serving (offline mode for kiosks)
@@ -53,7 +54,7 @@ app.secret_key = "CHANGE_THIS_TO_ANY_RANDOM_STRING"
 # Config
 # --------------------------------------------------
 
-CONFIG_FILE = Path("podium_config.json")
+CONFIG_FILE = BASE_DIR / "podium_config.json"
 
 DEFAULT_CONFIG = {
     "podium_url": "",
@@ -77,11 +78,11 @@ DEFAULT_CONFIG = {
 
 config = dict(DEFAULT_CONFIG)
 SCREENSAVER_TIMEOUT = 1 * 60  # seconds
-SCREENSAVER_DIR = Path("static/screensaver")
+SCREENSAVER_DIR = BASE_DIR / "static/screensaver"
 HEARTBEAT_INTERVAL = 5  # seconds between heartbeats from displays
 DISPLAY_HEARTBEAT_WARN = 60  # age (s) before showing a warning
 DISPLAY_HEARTBEAT_TTL = 60  # age (s) until a display is considered offline
-STATS_FILE = Path("podium_stats.json")
+STATS_FILE = BASE_DIR / "podium_stats.json"
 STATS_TTL_SECONDS = 24 * 60 * 60  # auto-clear stats after 24h
 
 # --------------------------------------------------
