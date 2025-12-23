@@ -37,45 +37,43 @@ if [ "$PODIUM" = "1" ]; then
   done
 fi
 
+CURRENT_MODE=""
+
 while true; do
   if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+    DESIRED_MODE="LIVE"
     URL="$SERVER_URL"
-    MODE="LIVE"
   else
+    DESIRED_MODE="FALLBACK"
     URL="$FALLBACK_URL"
-    MODE="FALLBACK"
   fi
 
-  /usr/bin/chromium \
-    --kiosk \
-    --window-size=1920,1080 \
-    --force-device-scale-factor=1 \
-    --no-sandbox \
-    --incognito \
-    --disable-cache \
-    --disk-cache-dir=/tmp/chromium-cache \
-    --user-data-dir=/tmp/chromium-profile \
-    --disable-infobars \
-    --disable-session-crashed-bubble \
-    --disable-restore-session-state \
-    --disable-component-update \
-    --disable-background-networking \
-    --disable-sync \
-    --noerrdialogs \
-    --autoplay-policy=no-user-gesture-required \
-    "$URL" &
+  # Only relaunch Chromium if mode changed
+  if [ "$DESIRED_MODE" != "$CURRENT_MODE" ]; then
+    pkill -f chromium || true
+    sleep 1
 
-  CHROME_PID=$!
+    /usr/bin/chromium \
+      --kiosk \
+      --window-size=1920,1080 \
+      --force-device-scale-factor=1 \
+      --no-sandbox \
+      --incognito \
+      --disable-cache \
+      --disk-cache-dir=/tmp/chromium-cache \
+      --user-data-dir=/tmp/chromium-profile \
+      --disable-infobars \
+      --disable-session-crashed-bubble \
+      --disable-restore-session-state \
+      --disable-component-update \
+      --disable-background-networking \
+      --disable-sync \
+      --noerrdialogs \
+      --autoplay-policy=no-user-gesture-required \
+      "$URL" &
 
-  while kill -0 "$CHROME_PID" 2>/dev/null; do
-    sleep 2
+    CURRENT_MODE="$DESIRED_MODE"
+  fi
 
-    if [ "$MODE" = "LIVE" ] && ! curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
-      kill "$CHROME_PID"
-      wait "$CHROME_PID" 2>/dev/null
-      break
-    fi
-  done
-
-  sleep 1
+  sleep 3
 done
