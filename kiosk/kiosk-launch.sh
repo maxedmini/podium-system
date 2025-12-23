@@ -2,8 +2,16 @@
 set -e
 
 export DISPLAY=:0
+export XAUTHORITY="/home/$(whoami)/.Xauthority"
 
-# Wait for X server to be ready
+# Load podium number
+if [ -f /etc/default/podium-kiosk ]; then
+  source /etc/default/podium-kiosk
+else
+  PODIUM=1
+fi
+
+# Wait for X server
 until xset q >/dev/null 2>&1; do
   sleep 1
 done
@@ -16,19 +24,10 @@ xset -dpms
 # Hide mouse cursor
 unclutter -idle 0 &
 
-HOST=$(hostname)
-
-case "$HOST" in
-  podium1) PODIUM=1 ;;
-  podium2) PODIUM=2 ;;
-  podium3) PODIUM=3 ;;
-  *) PODIUM=1 ;;
-esac
-
 SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 
-if curl -sf --max-time 2 "$SERVER_URL" > /dev/null; then
+if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
   URL="$SERVER_URL"
 else
   URL="$FALLBACK_URL"

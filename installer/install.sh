@@ -3,6 +3,26 @@ set -e
 
 USER=$(whoami)
 HOST=$(hostname)
+
+case "$HOST" in
+  podium1)
+    PODIUM=1
+    KIOSK_USER=podium1
+    ;;
+  podium2)
+    PODIUM=2
+    KIOSK_USER=podium2
+    ;;
+  podium3)
+    PODIUM=3
+    KIOSK_USER=podium3
+    ;;
+  *)
+    echo "❌ Unknown hostname: $HOST"
+    exit 1
+    ;;
+esac
+
 REPO_DIR="$HOME/podium-system"
 REPO_URL="https://github.com/maxedmini/podium-system.git"
 BRANCH="main"
