@@ -30,6 +30,7 @@ BRANCH="main"
 echo "=== Podium installer ==="
 echo "Host: $HOST"
 echo "User: $USER"
+echo "Podium: $PODIUM"
 
 # Packages
 sudo apt update
@@ -46,6 +47,9 @@ else
   git fetch origin
   git reset --hard "origin/$BRANCH"
 fi
+
+# Write podium number (single source of truth)
+echo "PODIUM=$PODIUM" | sudo tee /etc/default/podium-kiosk >/dev/null
 
 # Offline fallback
 sudo mkdir -p /opt/kiosk-fallback
@@ -74,12 +78,29 @@ cat > /opt/kiosk-fallback/offline.svg <<'EOF'
 </svg>
 EOF
 
-# Install kiosk files
+# Install kiosk launcher
 sudo install -m 755 "$REPO_DIR/kiosk/kiosk-launch.sh" /usr/local/bin/kiosk-launch.sh
 
-sed "s/{{USER}}/$USER/g" "$REPO_DIR/kiosk/kiosk.service" | \
-  sudo tee /etc/systemd/system/kiosk.service >/dev/null
+# Generate kiosk.service dynamically (CORRECT WAY)
+sudo tee /etc/systemd/system/kiosk.service >/dev/null <<EOF
+[Unit]
+Description=Podium Display Kiosk
+After=graphical.target
+Wants=graphical.target
 
+[Service]
+User=$KIOSK_USER
+Environment=DISPLAY=:0
+EnvironmentFile=/etc/default/podium-kiosk
+ExecStart=/usr/local/bin/kiosk-launch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+sudo systemctl unmask kiosk.service || true
 sudo systemctl daemon-reload
 sudo systemctl enable kiosk
 sudo systemctl restart kiosk
@@ -119,4 +140,3 @@ EOF
 fi
 
 echo "=== Installation complete. Reboot recommended. ==="
-
