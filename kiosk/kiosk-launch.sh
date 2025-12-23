@@ -27,6 +27,7 @@ unclutter -idle 0 &
 SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
 API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
+STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.json"
 
 # On podium1, wait for local server to come up (max 30s)
 if [ "$PODIUM" = "1" ]; then
@@ -39,6 +40,41 @@ if [ "$PODIUM" = "1" ]; then
 fi
 
 CURRENT_MODE=""
+STAGED_MODE=""
+
+record_mode_change() {
+  local mode="$1"
+  if [ -n "$API_BASE" ]; then
+    curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
+      -d "pos=$PODIUM" -d "mode=$mode" >/dev/null 2>&1 && return 0
+  fi
+  return 1
+}
+
+persist_mode() {
+  local mode="$1"
+  printf '{"mode":"%s","ts":%s}\n' "$mode" "$(date +%s)" > "$STATE_FILE"
+}
+
+load_persisted_mode() {
+  if [ -f "$STATE_FILE" ]; then
+    STAGED_MODE=$(jq -r '.mode // ""' "$STATE_FILE" 2>/dev/null || true)
+    STAGED_TS=$(jq -r '.ts // 0' "$STATE_FILE" 2>/dev/null || echo 0)
+  else
+    STAGED_MODE=""
+    STAGED_TS=0
+  fi
+}
+
+load_persisted_mode
+if [ -n "$STAGED_MODE" ] && [ "$STAGED_MODE" != "$CURRENT_MODE" ]; then
+  if record_mode_change "$STAGED_MODE"; then
+    CURRENT_MODE="$STAGED_MODE"
+    STAGED_MODE=""
+    STAGED_TS=0
+    rm -f "$STATE_FILE"
+  fi
+fi
 
 while true; do
   ONLINE=0
@@ -60,10 +96,11 @@ while true; do
 
   # Only relaunch Chromium if mode changed
   if [ "$DESIRED_MODE" != "$CURRENT_MODE" ]; then
-    # Tell server about mode change (best-effort, don't block)
-    if [ -n "$API_BASE" ]; then
-      curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
-        -d "pos=$PODIUM" -d "mode=$DESIRED_MODE" >/dev/null 2>&1 || true
+    # Tell server about mode change; if offline, persist and retry on next loop.
+    if record_mode_change "$DESIRED_MODE"; then
+      rm -f "$STATE_FILE"
+    else
+      persist_mode "$DESIRED_MODE"
     fi
 
     pkill -f chromium || true

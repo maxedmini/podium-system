@@ -80,7 +80,7 @@ SCREENSAVER_TIMEOUT = 1 * 60  # seconds
 SCREENSAVER_DIR = Path("static/screensaver")
 HEARTBEAT_INTERVAL = 5  # seconds between heartbeats from displays
 DISPLAY_HEARTBEAT_WARN = 60  # age (s) before showing a warning
-DISPLAY_HEARTBEAT_TTL = 180  # age (s) until a display is considered offline
+DISPLAY_HEARTBEAT_TTL = 60  # age (s) until a display is considered offline
 STATS_FILE = Path("podium_stats.json")
 STATS_TTL_SECONDS = 24 * 60 * 60  # auto-clear stats after 24h
 
