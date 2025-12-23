@@ -27,7 +27,7 @@ unclutter -idle 0 &
 SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
 API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
-STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.json"
+STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.state"
 
 # On podium1, wait for local server to come up (max 30s)
 if [ "$PODIUM" = "1" ]; then
@@ -40,7 +40,6 @@ if [ "$PODIUM" = "1" ]; then
 fi
 
 CURRENT_MODE=""
-STAGED_MODE=""
 
 record_mode_change() {
   local mode="$1"
@@ -53,30 +52,28 @@ record_mode_change() {
 
 persist_mode() {
   local mode="$1"
-  printf '{"mode":"%s","ts":%s}\n' "$mode" "$(date +%s)" > "$STATE_FILE"
+  printf '%s %s\n' "$mode" "$(date +%s)" > "$STATE_FILE"
 }
 
-load_persisted_mode() {
+flush_staged_mode() {
   if [ -f "$STATE_FILE" ]; then
-    STAGED_MODE=$(jq -r '.mode // ""' "$STATE_FILE" 2>/dev/null || true)
-    STAGED_TS=$(jq -r '.ts // 0' "$STATE_FILE" 2>/dev/null || echo 0)
-  else
-    STAGED_MODE=""
-    STAGED_TS=0
+    local staged_mode staged_ts
+    staged_mode=""
+    staged_ts=0
+    if read staged_mode staged_ts < "$STATE_FILE"; then
+      if [ -n "$staged_mode" ]; then
+        if record_mode_change "$staged_mode"; then
+          rm -f "$STATE_FILE"
+        fi
+      fi
+    fi
   fi
 }
-
-load_persisted_mode
-if [ -n "$STAGED_MODE" ] && [ "$STAGED_MODE" != "$CURRENT_MODE" ]; then
-  if record_mode_change "$STAGED_MODE"; then
-    CURRENT_MODE="$STAGED_MODE"
-    STAGED_MODE=""
-    STAGED_TS=0
-    rm -f "$STATE_FILE"
-  fi
-fi
 
 while true; do
+  # Try to flush any staged mode change from when the server was unreachable.
+  flush_staged_mode
+
   ONLINE=0
   for attempt in {1..5}; do
     if curl -sf --max-time 3 "$SERVER_URL" >/dev/null; then

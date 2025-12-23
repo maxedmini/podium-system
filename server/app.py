@@ -1469,6 +1469,7 @@ textarea { min-height: 120px; resize: vertical; }
 .table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.95rem; }
 .table th, .table td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
 .table th { background: #f6f8fa; font-weight: 700; }
+.table-wrapper { overflow-x: auto; }
 .muted { color: var(--muted); }
 .links { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f0f4ff; border: 1px solid var(--border); border-radius: 6px; text-decoration: none; color: inherit; }
@@ -1597,35 +1598,37 @@ textarea { min-height: 120px; resize: vertical; }
 
     <div class="section">
       <h2>Display Status</h2>
-      <table class="table" id="status-table">
-        <thead>
-          <tr><th>Display</th><th>Status</th><th>Last seen</th><th>URL</th><th>Resolution</th><th>Name</th><th>State</th><th>Needs attention</th><th>Warning</th><th>Offline count</th><th>Offline since</th><th>Offline total (min)</th><th>Last offline (min)</th><th>Kiosk fallbacks</th><th>Last kiosk fallback</th><th>Kiosk fallback since</th><th>Kiosk fallback total (min)</th><th>Kiosk last offline (min)</th></tr>
-        </thead>
-        <tbody>
-          {% for pos, info in statuses.items() %}
-          <tr>
-            <td>{{ pos }}</td>
-            <td style="color:{{ 'green' if info.online else 'red' }}">{{ 'online' if info.online else 'offline' }}</td>
-            <td>{{ info.last_seen }}</td>
-            <td>{{ info.url }}</td>
-            <td>{{ info.resolution }}</td>
-            <td>{{ info.name }}</td>
-            <td>{{ info.state }}</td>
-            <td style="color:{{ 'red' if info.needs_attention else '#555' }}">{{ 'yes' if info.needs_attention else 'no' }}</td>
-            <td>{{ info.warning }}</td>
-            <td>{{ info.offline_count }}</td>
-            <td>{{ info.offline_since }}</td>
-            <td>{{ info.offline_total_minutes }}</td>
-            <td>{{ info.last_offline_minutes }}</td>
-            <td>{{ info.kiosk_fallback_count }}</td>
-            <td>{{ info.kiosk_last_fallback_at }}</td>
-            <td>{{ info.kiosk_fallback_since }}</td>
-            <td>{{ info.kiosk_fallback_total_minutes }}</td>
-            <td>{{ info.kiosk_last_fallback_minutes }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrapper">
+        <table class="table" id="status-table">
+          <thead>
+            <tr><th>Display</th><th>Status</th><th>Last seen</th><th>URL</th><th>Resolution</th><th>Name</th><th>State</th><th>Needs attention</th><th>Warning</th><th>Offline count</th><th>Offline since</th><th>Offline total (min)</th><th>Last offline (min)</th><th>Kiosk fallbacks</th><th>Last kiosk fallback</th><th>Kiosk fallback since</th><th>Kiosk fallback total (min)</th><th>Kiosk last offline (min)</th></tr>
+          </thead>
+          <tbody>
+            {% for pos, info in statuses.items() %}
+            <tr>
+              <td>{{ pos }}</td>
+              <td style="color:{{ 'green' if info.online else 'red' }}">{{ 'online' if info.online else 'offline' }}</td>
+              <td>{{ info.last_seen }}</td>
+              <td>{{ info.url }}</td>
+              <td>{{ info.resolution }}</td>
+              <td>{{ info.name }}</td>
+              <td>{{ info.state }}</td>
+              <td style="color:{{ 'red' if info.needs_attention else '#555' }}">{{ 'yes' if info.needs_attention else 'no' }}</td>
+              <td>{{ info.warning }}</td>
+              <td>{{ info.offline_count }}</td>
+              <td>{{ info.offline_since }}</td>
+              <td>{{ info.offline_total_minutes }}</td>
+              <td>{{ info.last_offline_minutes }}</td>
+              <td>{{ info.kiosk_fallback_count }}</td>
+              <td>{{ info.kiosk_last_fallback_at }}</td>
+              <td>{{ info.kiosk_fallback_since }}</td>
+              <td>{{ info.kiosk_fallback_total_minutes }}</td>
+              <td>{{ info.kiosk_last_fallback_minutes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="section">
