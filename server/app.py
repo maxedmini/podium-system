@@ -36,21 +36,14 @@ FALLBACK_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "fallback")
 )
 
-@app.route("/assets/fallback/<path:filename>")
-def serve_fallback_asset(filename):
-    allowed_files = {
-        "offline.html",
-        "offline.png",
-    }
-
-    if filename not in allowed_files:
-        abort(404)
-
+@app.route("/offline/<path:filename>")
+def serve_offline_fallback(filename):
     return send_from_directory(
-        FALLBACK_DIR,
+        OFFLINE_FALLBACK_DIR,
         filename,
         conditional=True
     )
+
 
 
 app.secret_key = "CHANGE_THIS_TO_ANY_RANDOM_STRING"
@@ -182,7 +175,7 @@ def write_offline_fallback_page(image_name: str | None = None) -> None:
   </style>
 </head>
 <body>
-  <img src="{img}" alt="Offline fallback">
+  <img src="/offline/{img}" alt="Offline fallback">
 </body>
 </html>
 """.format(img=img_name)
