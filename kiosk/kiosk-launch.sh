@@ -24,9 +24,12 @@ xset -dpms
 # Hide mouse cursor
 unclutter -idle 0 &
 
-# Allow overriding server host via SERVER_HOST (e.g., IP) in /etc/default/podium-kiosk
-SERVER_HOST="${SERVER_HOST:-podium1.local}"
-SERVER_URL="http://${SERVER_HOST}:5001/display/${PODIUM}"
+# Allow overriding server URL/host via /etc/default/podium-kiosk
+if [ -z "$SERVER_URL" ]; then
+  SERVER_HOST="${SERVER_HOST:-podium1.local}"
+  SERVER_URL="http://${SERVER_HOST}:5001/display/${PODIUM}"
+fi
+# Strip /display/<n> suffix to get API base
 API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.state"
