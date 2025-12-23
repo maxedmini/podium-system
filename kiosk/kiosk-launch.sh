@@ -40,7 +40,16 @@ fi
 CURRENT_MODE=""
 
 while true; do
-  if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+  ONLINE=0
+  for attempt in {1..3}; do
+    if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+      ONLINE=1
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$ONLINE" = "1" ]; then
     DESIRED_MODE="LIVE"
     URL="$SERVER_URL"
   else
