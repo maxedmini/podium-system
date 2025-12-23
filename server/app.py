@@ -361,9 +361,25 @@ def get_pi_hosts() -> list[str]:
     return hosts
 
 
+def executable_path(name: str, fallbacks: tuple[str, ...]) -> str | None:
+    """Return a usable executable path, if available."""
+    path = shutil.which(name)
+    if path and os.access(path, os.X_OK):
+        return path
+    for candidate in fallbacks:
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
 def sshpass_path() -> str | None:
     """Return a usable sshpass path, if available."""
-    return shutil.which("sshpass") or ("/usr/bin/sshpass" if os.path.exists("/usr/bin/sshpass") else None)
+    return executable_path("sshpass", ("/usr/bin/sshpass", "/bin/sshpass", "/usr/local/bin/sshpass"))
+
+
+def ssh_binary(name: str) -> str | None:
+    """Return a usable ssh/scp path, if available."""
+    return executable_path(name, (f"/usr/bin/{name}", f"/bin/{name}", f"/usr/local/bin/{name}"))
 
 
 def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
@@ -373,6 +389,10 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
     key_path = os.path.expanduser(config.get("ssh_key_path") or "")
     password = config.get("pi_password", "").strip()
 
+    ssh_path = ssh_binary("ssh")
+    if not ssh_path:
+        return False, "ssh not installed on server"
+
     if password and not key_path:
         sshpass = sshpass_path()
         if not sshpass:
@@ -381,7 +401,7 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
             sshpass,
             "-p",
             password,
-            "ssh",
+            ssh_path,
             "-o",
             "StrictHostKeyChecking=no",
             "-o",
@@ -391,7 +411,7 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
         ]
     else:
         cmd = [
-            "ssh",
+            ssh_path,
             "-o",
             "BatchMode=yes",
             "-o",
@@ -425,6 +445,10 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
     key_path = os.path.expanduser(config.get("ssh_key_path") or "")
     password = config.get("pi_password", "").strip()
 
+    scp_path = ssh_binary("scp")
+    if not scp_path:
+        return False, "scp not installed on server"
+
     if password and not key_path:
         sshpass = sshpass_path()
         if not sshpass:
@@ -433,7 +457,7 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
             sshpass,
             "-p",
             password,
-            "scp",
+            scp_path,
             "-o",
             "StrictHostKeyChecking=no",
             "-o",
@@ -441,7 +465,7 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
         ]
     else:
         cmd = [
-            "scp",
+            scp_path,
             "-o",
             "BatchMode=yes",
             "-o",
