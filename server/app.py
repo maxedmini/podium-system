@@ -81,6 +81,8 @@ SCREENSAVER_DIR = Path("static/screensaver")
 HEARTBEAT_INTERVAL = 5  # seconds between heartbeats from displays
 DISPLAY_HEARTBEAT_WARN = 60  # age (s) before showing a warning
 DISPLAY_HEARTBEAT_TTL = 180  # age (s) until a display is considered offline
+STATS_FILE = Path("podium_stats.json")
+STATS_TTL_SECONDS = 24 * 60 * 60  # auto-clear stats after 24h
 
 # --------------------------------------------------
 # Cache
@@ -100,6 +102,27 @@ name_change_times = {
 }
 name_change_version = 0
 display_status: Dict[int, Dict[str, Any]] = {1: {}, 2: {}, 3: {}}
+stats_state: Dict[str, Any] = {"last_reset": time.time()}
+
+
+def _default_offline_stats() -> Dict[int, Dict[str, Any]]:
+    return {
+        1: {"offline_since": None, "offline_count": 0, "offline_total_seconds": 0.0, "last_offline_duration": 0.0},
+        2: {"offline_since": None, "offline_count": 0, "offline_total_seconds": 0.0, "last_offline_duration": 0.0},
+        3: {"offline_since": None, "offline_count": 0, "offline_total_seconds": 0.0, "last_offline_duration": 0.0},
+    }
+
+
+def _default_kiosk_stats() -> Dict[int, Dict[str, Any]]:
+    return {
+        1: {"fallback_count": 0, "fallback_since": None, "last_fallback_at": None, "fallback_total_seconds": 0.0, "last_fallback_duration": 0.0},
+        2: {"fallback_count": 0, "fallback_since": None, "last_fallback_at": None, "fallback_total_seconds": 0.0, "last_fallback_duration": 0.0},
+        3: {"fallback_count": 0, "fallback_since": None, "last_fallback_at": None, "fallback_total_seconds": 0.0, "last_fallback_duration": 0.0},
+    }
+
+
+offline_stats: Dict[int, Dict[str, Any]] = _default_offline_stats()
+kiosk_mode_stats: Dict[int, Dict[str, Any]] = _default_kiosk_stats()
 
 # --------------------------------------------------
 # Helpers
@@ -111,6 +134,59 @@ def load_config():
             config.update(json.loads(CONFIG_FILE.read_text()))
         except Exception:
             pass
+
+
+def reset_stats(save: bool = True) -> None:
+    """Reset offline/kiosk stats and optionally persist."""
+    global offline_stats, kiosk_mode_stats
+    offline_stats = _default_offline_stats()
+    kiosk_mode_stats = _default_kiosk_stats()
+    stats_state["last_reset"] = time.time()
+    if save:
+        save_stats()
+
+
+def load_stats() -> None:
+    """Load persisted stats or initialize defaults."""
+    global offline_stats, kiosk_mode_stats
+    if not STATS_FILE.exists():
+        reset_stats(save=False)
+        return
+    try:
+        data = json.loads(STATS_FILE.read_text())
+        stats_state["last_reset"] = float(data.get("last_reset", time.time()))
+        offline_loaded = data.get("offline_stats") or {}
+        kiosk_loaded = data.get("kiosk_mode_stats") or {}
+        offline_stats = _default_offline_stats()
+        kiosk_mode_stats = _default_kiosk_stats()
+        for k, v in offline_loaded.items():
+            try:
+                offline_stats[int(k)].update(v or {})
+            except Exception:
+                continue
+        for k, v in kiosk_loaded.items():
+            try:
+                kiosk_mode_stats[int(k)].update(v or {})
+            except Exception:
+                continue
+    except Exception:
+        reset_stats(save=False)
+
+
+def save_stats() -> None:
+    payload = {
+        "last_reset": stats_state.get("last_reset", time.time()),
+        "offline_stats": offline_stats,
+        "kiosk_mode_stats": kiosk_mode_stats,
+    }
+    STATS_FILE.write_text(json.dumps(payload, indent=2))
+
+
+def ensure_stats_fresh() -> None:
+    """Auto-clear stats after TTL."""
+    last_reset = float(stats_state.get("last_reset") or 0.0)
+    if time.time() - last_reset > STATS_TTL_SECONDS:
+        reset_stats()
 
 def save_config():
     CONFIG_FILE.write_text(json.dumps(config, indent=2))
@@ -355,6 +431,7 @@ def save_upload_with_sudo(upload, dest_path: Path) -> None:
 
 
 def update_display_status(pos: int, payload: Dict[str, Any]) -> None:
+    ensure_stats_fresh()
     stamp = time.time()
     display_status[pos] = {
         "last_seen": stamp,
@@ -362,7 +439,40 @@ def update_display_status(pos: int, payload: Dict[str, Any]) -> None:
         "resolution": payload.get("resolution", ""),
         "online": True,
     }
+    stats = offline_stats.get(pos)
+    if stats and stats.get("offline_since"):
+        duration = max(0.0, stamp - float(stats["offline_since"]))
+        stats["offline_total_seconds"] += duration
+        stats["last_offline_duration"] = duration
+        stats["offline_count"] += 1
+        stats["offline_since"] = None
+        save_stats()
 
+
+def record_kiosk_mode(pos: int, mode: str) -> None:
+    """Record kiosk-reported mode changes (LIVE/FALLBACK) for visibility in admin."""
+    ensure_stats_fresh()
+    stats = kiosk_mode_stats.get(pos)
+    if not stats:
+        return
+
+    now = time.time()
+    mode = mode.upper().strip()
+    if mode == "FALLBACK":
+        if stats.get("fallback_since"):
+            return
+        stats["fallback_since"] = now
+        stats["fallback_count"] += 1
+        stats["last_fallback_at"] = now
+        save_stats()
+    elif mode == "LIVE":
+        start = stats.get("fallback_since")
+        if start:
+            duration = max(0.0, now - float(start))
+            stats["fallback_total_seconds"] += duration
+            stats["last_fallback_duration"] = duration
+            stats["fallback_since"] = None
+            save_stats()
 def get_pi_hosts() -> list[str]:
     raw_hosts = config.get("pi_hosts") or []
     if isinstance(raw_hosts, str):
@@ -748,6 +858,7 @@ def compute_display_view(pos: int, data: Dict[str, Any] | None) -> Dict[str, Any
 
 
 def summarize_display_status() -> Dict[int, Dict[str, Any]]:
+    ensure_stats_fresh()
     data = podium_cache.get("data")
     now = time.time()
     summary: Dict[int, Dict[str, Any]] = {}
@@ -768,6 +879,62 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
             warn = f"Heartbeat slow ({int(age)}s old)"
             needs_attention = True
 
+        stats = offline_stats.get(pos) or {
+            "offline_since": None,
+            "offline_count": 0,
+            "offline_total_seconds": 0.0,
+            "last_offline_duration": 0.0,
+        }
+        offline_start = stats.get("offline_since")
+        stats_changed = False
+        if not online:
+            if not offline_start:
+                offline_start = (last_seen + DISPLAY_HEARTBEAT_TTL) if last_seen else now
+                stats["offline_since"] = offline_start
+                stats_changed = True
+        else:
+            if offline_start:
+                duration = max(0.0, now - float(offline_start))
+                stats["offline_total_seconds"] += duration
+                stats["last_offline_duration"] = duration
+                stats["offline_count"] += 1
+                stats["offline_since"] = None
+                offline_start = None
+                stats_changed = True
+
+        offline_elapsed = max(0.0, now - float(offline_start)) if offline_start else 0.0
+        offline_since_str = datetime.fromtimestamp(offline_start).strftime("%H:%M:%S") if offline_start else "—"
+        offline_total_minutes = round(stats.get("offline_total_seconds", 0.0) / 60, 1)
+        last_offline_minutes = round(stats.get("last_offline_duration", 0.0) / 60, 1) if stats.get("last_offline_duration") else 0
+        offline_current_minutes = round(offline_elapsed / 60, 1) if offline_elapsed else 0
+        offline_stats[pos] = stats
+        if stats_changed:
+            save_stats()
+
+        kiosk_stats = kiosk_mode_stats.get(pos) or {
+            "fallback_count": 0,
+            "fallback_since": None,
+            "last_fallback_at": None,
+            "fallback_total_seconds": 0.0,
+            "last_fallback_duration": 0.0,
+        }
+        kiosk_since = kiosk_stats.get("fallback_since")
+        kiosk_last_at = kiosk_stats.get("last_fallback_at")
+        kiosk_total = kiosk_stats.get("fallback_total_seconds", 0.0)
+        kiosk_last = kiosk_stats.get("last_fallback_duration", 0.0)
+        kiosk_count = int(kiosk_stats.get("fallback_count", 0))
+        if kiosk_since:
+            kiosk_elapsed = max(0.0, now - float(kiosk_since))
+            kiosk_current_minutes = round(kiosk_elapsed / 60, 1)
+        else:
+            kiosk_elapsed = 0.0
+            kiosk_current_minutes = 0
+        kiosk_total_minutes = round(kiosk_total / 60, 1)
+        kiosk_last_minutes = round(kiosk_last / 60, 1) if kiosk_last else 0
+        kiosk_last_at_str = datetime.fromtimestamp(kiosk_last_at).strftime("%H:%M:%S") if kiosk_last_at else "—"
+        kiosk_fallback_since_str = datetime.fromtimestamp(kiosk_since).strftime("%H:%M:%S") if kiosk_since else "—"
+        kiosk_mode_stats[pos] = kiosk_stats
+
         summary[pos] = {
             "online": online,
             "last_seen": datetime.fromtimestamp(last_seen).strftime("%H:%M:%S") if last_seen else "never",
@@ -777,6 +944,17 @@ def summarize_display_status() -> Dict[int, Dict[str, Any]]:
             "warning": warn or "—",
             "name": current["display_name"],
             "state": current["state"],
+            "offline_count": int(stats.get("offline_count", 0)),
+            "offline_total_minutes": offline_total_minutes,
+            "offline_since": offline_since_str,
+            "offline_current_minutes": offline_current_minutes,
+            "last_offline_minutes": last_offline_minutes,
+            "kiosk_fallback_count": kiosk_count,
+            "kiosk_fallback_since": kiosk_fallback_since_str,
+            "kiosk_fallback_total_minutes": kiosk_total_minutes,
+            "kiosk_last_fallback_minutes": kiosk_last_minutes,
+            "kiosk_last_fallback_at": kiosk_last_at_str,
+            "kiosk_fallback_current_minutes": kiosk_current_minutes,
         }
     return summary
 
@@ -1403,6 +1581,7 @@ textarea { min-height: 120px; resize: vertical; }
       <div class="buttons">
         <button type="submit" class="btn primary">Save</button>
         <button type="submit" name="action" value="test" class="btn">Test scrape</button>
+        <button type="submit" name="action" value="clear_stats" class="btn danger">Clear stats</button>
       </div>
     </div>
 
@@ -1420,7 +1599,7 @@ textarea { min-height: 120px; resize: vertical; }
       <h2>Display Status</h2>
       <table class="table" id="status-table">
         <thead>
-          <tr><th>Display</th><th>Status</th><th>Last seen</th><th>URL</th><th>Resolution</th><th>Name</th><th>State</th><th>Needs attention</th><th>Warning</th></tr>
+          <tr><th>Display</th><th>Status</th><th>Last seen</th><th>URL</th><th>Resolution</th><th>Name</th><th>State</th><th>Needs attention</th><th>Warning</th><th>Offline count</th><th>Offline since</th><th>Offline total (min)</th><th>Last offline (min)</th><th>Kiosk fallbacks</th><th>Last kiosk fallback</th><th>Kiosk fallback since</th><th>Kiosk fallback total (min)</th><th>Kiosk last offline (min)</th></tr>
         </thead>
         <tbody>
           {% for pos, info in statuses.items() %}
@@ -1434,6 +1613,15 @@ textarea { min-height: 120px; resize: vertical; }
             <td>{{ info.state }}</td>
             <td style="color:{{ 'red' if info.needs_attention else '#555' }}">{{ 'yes' if info.needs_attention else 'no' }}</td>
             <td>{{ info.warning }}</td>
+            <td>{{ info.offline_count }}</td>
+            <td>{{ info.offline_since }}</td>
+            <td>{{ info.offline_total_minutes }}</td>
+            <td>{{ info.last_offline_minutes }}</td>
+            <td>{{ info.kiosk_fallback_count }}</td>
+            <td>{{ info.kiosk_last_fallback_at }}</td>
+            <td>{{ info.kiosk_fallback_since }}</td>
+            <td>{{ info.kiosk_fallback_total_minutes }}</td>
+            <td>{{ info.kiosk_last_fallback_minutes }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -1526,6 +1714,15 @@ function renderStatusTable(rows) {
       <td>${r.state}</td>
       <td style="color:${r.needs_attention ? 'red' : '#555'}">${r.needs_attention ? 'yes' : 'no'}</td>
       <td>${r.warning || '—'}</td>
+      <td>${r.offline_count ?? 0}</td>
+      <td>${r.offline_since || '—'}</td>
+      <td>${r.offline_total_minutes ?? 0}</td>
+      <td>${r.last_offline_minutes ?? 0}</td>
+      <td>${r.kiosk_fallback_count ?? 0}</td>
+      <td>${r.kiosk_last_fallback_at || '—'}</td>
+      <td>${r.kiosk_fallback_since || '—'}</td>
+      <td>${r.kiosk_fallback_total_minutes ?? 0}</td>
+      <td>${r.kiosk_last_fallback_minutes ?? 0}</td>
     </tr>
   `).join("");
 }
@@ -1666,7 +1863,10 @@ def admin():
         podium_cache["data"] = None
 
         action = request.form.get("action")
-        if action == "send_wifi" and not message:
+        if action == "clear_stats":
+            reset_stats()
+            notes.append("Stats cleared")
+        elif action == "send_wifi" and not message:
             ssid = request.form.get("wifi_ssid", "").strip()
             password = request.form.get("wifi_password", "").strip()
             if not ssid or not password:
@@ -1874,6 +2074,19 @@ def display_heartbeat():
     return {"ok": True}
 
 
+@app.route("/api/kiosk-mode", methods=["POST"])
+def kiosk_mode():
+    data = request.get_json(silent=True) or request.form or {}
+    pos = int(data.get("pos") or 0)
+    mode = (data.get("mode") or "").strip().upper()
+    if pos not in (1, 2, 3):
+        return {"ok": False, "error": "invalid position"}, 400
+    if mode not in ("LIVE", "FALLBACK"):
+        return {"ok": False, "error": "invalid mode"}, 400
+    record_kiosk_mode(pos, mode)
+    return {"ok": True}
+
+
 @app.route("/api/admin/status")
 def admin_status_api():
     data, _ = get_podium_data()
@@ -1913,7 +2126,7 @@ def admin_restart_api():
 
 if __name__ == "__main__":
     load_config()
+    load_stats()
     print("🏆 PODIUM DISPLAY SERVER – STABLE FINAL")
     if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5001, debug=False)
-

@@ -25,6 +25,7 @@ xset -dpms
 unclutter -idle 0 &
 
 SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
+API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 
 # On podium1, wait for local server to come up (max 30s)
@@ -59,6 +60,12 @@ while true; do
 
   # Only relaunch Chromium if mode changed
   if [ "$DESIRED_MODE" != "$CURRENT_MODE" ]; then
+    # Tell server about mode change (best-effort, don't block)
+    if [ -n "$API_BASE" ]; then
+      curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
+        -d "pos=$PODIUM" -d "mode=$DESIRED_MODE" >/dev/null 2>&1 || true
+    fi
+
     pkill -f chromium || true
     sleep 1
 
