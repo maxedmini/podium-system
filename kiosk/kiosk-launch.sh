@@ -27,11 +27,23 @@ unclutter -idle 0 &
 SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 
-if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+# On podium1, wait for local server to come up (max 30s)
+if [ "$PODIUM" = "1" ]; then
+  for i in {1..30}; do
+    if curl -sf "$SERVER_URL" >/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+fi
+
+# Final decision for all podiums
+if curl -sf "$SERVER_URL" >/dev/null; then
   URL="$SERVER_URL"
 else
   URL="$FALLBACK_URL"
 fi
+
 
 exec /usr/bin/chromium \
   --kiosk \
