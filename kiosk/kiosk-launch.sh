@@ -41,8 +41,8 @@ CURRENT_MODE=""
 
 while true; do
   ONLINE=0
-  for attempt in {1..3}; do
-    if curl -sf --max-time 2 "$SERVER_URL" >/dev/null; then
+  for attempt in {1..5}; do
+    if curl -sf --max-time 3 "$SERVER_URL" >/dev/null; then
       ONLINE=1
       break
     fi
@@ -84,5 +84,5 @@ while true; do
     CURRENT_MODE="$DESIRED_MODE"
   fi
 
-  sleep 3
+  sleep 5
 done
