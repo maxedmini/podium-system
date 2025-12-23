@@ -166,21 +166,20 @@ def write_offline_fallback_page(image_name: str | None = None) -> None:
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Offline fallback</title>
+  <title>Display Offline</title>
+  <meta name="viewport" content="width=1920,height=1080">
   <style>
     html, body {{
       margin: 0;
-      padding: 0;
       width: 100%;
       height: 100%;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: black;
+      overflow: hidden;
     }}
     img {{
-      max-width: 90vw;
-      max-height: 90vh;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
     }}
   </style>
 </head>
@@ -1899,3 +1898,5 @@ if __name__ == "__main__":
     print("🏆 PODIUM DISPLAY SERVER – STABLE FINAL")
     if __name__ == "__main__":
         app.run(host="0.0.0.0", port=5001, debug=False)
+
+
