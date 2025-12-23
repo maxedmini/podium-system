@@ -24,10 +24,13 @@ xset -dpms
 # Hide mouse cursor
 unclutter -idle 0 &
 
-SERVER_URL="http://podium1.local:5001/display/${PODIUM}"
+# Allow overriding server host via SERVER_HOST (e.g., IP) in /etc/default/podium-kiosk
+SERVER_HOST="${SERVER_HOST:-podium1.local}"
+SERVER_URL="http://${SERVER_HOST}:5001/display/${PODIUM}"
 API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.state"
+LOG_FILE="/tmp/podium-kiosk.log"
 
 # On podium1, wait for local server to come up (max 30s)
 if [ "$PODIUM" = "1" ]; then
@@ -41,11 +44,20 @@ fi
 
 CURRENT_MODE=""
 
+log_msg() {
+  echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$LOG_FILE"
+}
+
 record_mode_change() {
   local mode="$1"
   if [ -n "$API_BASE" ]; then
-    curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
-      -d "pos=$PODIUM" -d "mode=$mode" >/dev/null 2>&1 && return 0
+    if curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
+      -d "pos=$PODIUM" -d "mode=$mode" >/dev/null 2>&1; then
+      log_msg "reported mode=$mode to $API_BASE ok"
+      return 0
+    else
+      log_msg "failed to report mode=$mode to $API_BASE"
+    fi
   fi
   return 1
 }
@@ -53,6 +65,7 @@ record_mode_change() {
 persist_mode() {
   local mode="$1"
   printf '%s %s\n' "$mode" "$(date +%s)" > "$STATE_FILE"
+  log_msg "queued mode=$mode (server unreachable)"
 }
 
 flush_staged_mode() {
@@ -64,6 +77,7 @@ flush_staged_mode() {
       if [ -n "$staged_mode" ]; then
         if record_mode_change "$staged_mode"; then
           rm -f "$STATE_FILE"
+          log_msg "flushed queued mode=$staged_mode"
         fi
       fi
     fi

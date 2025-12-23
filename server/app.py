@@ -2094,6 +2094,10 @@ def kiosk_mode():
         return {"ok": False, "error": "invalid position"}, 400
     if mode not in ("LIVE", "FALLBACK"):
         return {"ok": False, "error": "invalid mode"}, 400
+    try:
+        app.logger.info("kiosk-mode: pos=%s mode=%s", pos, mode)
+    except Exception:
+        pass
     record_kiosk_mode(pos, mode)
     return {"ok": True}
 
