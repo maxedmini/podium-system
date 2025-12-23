@@ -35,7 +35,7 @@ echo "Podium: $PODIUM"
 # Packages
 sudo apt update
 sudo apt install -y \
-  git curl rsync sshpass \
+  git curl rsync sshpass openssh-client \
   chromium x11-xserver-utils unclutter \
   python3 python3-venv python3-pip
 
