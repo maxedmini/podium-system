@@ -31,6 +31,7 @@ app = Flask(__name__)
 OFFLINE_FALLBACK_DIR = Path("/opt/kiosk-fallback")
 OFFLINE_FALLBACK_DEFAULT_NAME = "offline.svg"
 OFFLINE_FALLBACK_HTML = OFFLINE_FALLBACK_DIR / "offline.html"
+OFFLINE_FALLBACK_FIELD = "offline_fallback_filename"
 
 # -------------------------------------------------------------------
 # Fallback asset serving (offline mode for kiosks)
@@ -189,6 +190,47 @@ def write_offline_fallback_page(image_name: str | None = None) -> None:
 </html>
 """
     write_file_with_sudo(OFFLINE_FALLBACK_HTML, html)
+
+
+def update_offline_fallback(upload) -> tuple[list[str], str | None]:
+    notes: list[str] = []
+    fname = secure_filename(upload.filename)
+    allowed_exts = {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"}
+    ext = Path(fname).suffix.lower()
+    if ext not in allowed_exts:
+        return notes, "Offline fallback must be an image (svg/png/jpg/gif/webp)"
+
+    ok_dir, err_dir = ensure_local_offline_dir()
+    if not ok_dir:
+        return (
+            notes,
+            err_dir
+            or (
+                "Unable to create /opt/kiosk-fallback; try running: "
+                "sudo mkdir -p /opt/kiosk-fallback && sudo chmod 775 /opt/kiosk-fallback"
+            ),
+        )
+
+    final_name = f"offline{ext}" if ext else OFFLINE_FALLBACK_DEFAULT_NAME
+    offline_path = OFFLINE_FALLBACK_DIR / final_name
+    try:
+        save_upload_with_sudo(upload, offline_path)
+        config["offline_fallback_filename"] = final_name
+        write_offline_fallback_page(final_name)
+    except Exception as e:
+        return notes, f"Failed to save offline fallback: {e}"
+
+    push_results = push_offline_fallback_to_pis(offline_path, OFFLINE_FALLBACK_HTML)
+    failed = [r for r in push_results if not r.get("ok")]
+    if failed:
+        fail_hosts = "; ".join(
+            f"{r.get('host', '?')}: {r.get('error') or 'unknown error'}"
+            for r in failed
+        )
+        return notes, f"Offline fallback saved locally but failed to push: {fail_hosts}"
+
+    notes.append(f"Offline fallback updated and pushed ({ext.lstrip('.')})")
+    return notes, None
 
 
 
@@ -1303,7 +1345,7 @@ textarea { min-height: 120px; resize: vertical; }
     <div class="section">
       <h2>Offline fallback</h2>
       <div class="field-stack">
-        <input type="file" name="offline_svg" accept="image/*">
+        <input type="file" name="offline_fallback_filename" accept="image/*">
         <div class="small">Uploads to /opt/kiosk-fallback/offline.&lt;ext&gt; (svg/png/jpg/gif/webp) and rewrites offline.html with a black background showing the image.</div>
       </div>
     </div>
@@ -1565,40 +1607,12 @@ def admin():
                 config[field] = fname
                 notes.append(f"Uploaded {label}")
 
-        offline_upload = request.files.get("offline_svg")
+        offline_upload = request.files.get(OFFLINE_FALLBACK_FIELD)
         if offline_upload and offline_upload.filename and not message:
-            fname = secure_filename(offline_upload.filename)
-            allowed_exts = {".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp"}
-            ext = Path(fname).suffix.lower()
-            if ext not in allowed_exts:
-                message = "Offline fallback must be an image (svg/png/jpg/gif/webp)"
-            else:
-                ok_dir, err_dir = ensure_local_offline_dir()
-                if not ok_dir:
-                    message = err_dir or (
-                        "Unable to create /opt/kiosk-fallback; try running: "
-                        "sudo mkdir -p /opt/kiosk-fallback && sudo chmod 775 /opt/kiosk-fallback"
-                    )
-                else:
-                    final_name = f"offline{ext}" if ext else OFFLINE_FALLBACK_DEFAULT_NAME
-                    offline_path = OFFLINE_FALLBACK_DIR / final_name
-                    try:
-                        save_upload_with_sudo(offline_upload, offline_path)
-                        config["offline_fallback_filename"] = final_name
-                        write_offline_fallback_page(final_name)
-                    except Exception as e:
-                        message = f"Failed to save offline fallback: {e}"
-                    else:
-                        push_results = push_offline_fallback_to_pis(offline_path, OFFLINE_FALLBACK_HTML)
-                        failed = [r for r in push_results if not r.get("ok")]
-                        if failed:
-                            fail_hosts = "; ".join(
-                                f"{r.get('host', '?')}: {r.get('error') or 'unknown error'}"
-                                for r in failed
-                            )
-                            message = f"Offline fallback saved locally but failed to push: {fail_hosts}"
-                        else:
-                            notes.append(f"Offline fallback updated and pushed ({ext.lstrip('.')})")
+            offline_notes, offline_error = update_offline_fallback(offline_upload)
+            notes.extend(offline_notes)
+            if offline_error:
+                message = offline_error
 
         save_config()
         podium_cache["data"] = None
@@ -1616,12 +1630,18 @@ def admin():
                 else:
                     ok_count = sum(1 for r in wifi_push_results if r.get("ok"))
                     fail_count = len(wifi_push_results) - ok_count
-                    message = f"WiFi pushed ({ok_count} ok, {fail_count} failed)"
+                    notes.append(f"WiFi pushed ({ok_count} ok, {fail_count} failed)")
         elif action == "test" and not message:
             data, err = get_podium_data(force=True)
-            message = f"OK: {data['category']}" if data else f"Error: {err}"
-        elif not message:
-            message = "Saved" + (f" ({'; '.join(notes)})" if notes else "")
+            if data:
+                notes.append(f"OK: {data['category']}")
+            else:
+                message = f"Error: {err}"
+        if not message:
+            if action in {"send_wifi", "test"} and notes:
+                message = "; ".join(notes)
+            else:
+                message = "Saved" + (f" ({'; '.join(notes)})" if notes else "")
 
         session["message"] = message
         session["wifi_push_results"] = wifi_push_results
