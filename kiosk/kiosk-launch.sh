@@ -26,14 +26,17 @@ unclutter -idle 0 &
 
 # Allow overriding server URL/host via /etc/default/podium-kiosk
 if [ -z "$SERVER_URL" ]; then
-  SERVER_HOST="${SERVER_HOST:-podium1.local}"
-  SERVER_URL="http://${SERVER_HOST}:5001/display/${PODIUM}"
+SERVER_HOST="${SERVER_HOST:-podium1.local}"
+SERVER_URL="http://${SERVER_HOST}:5001/display/${PODIUM}"
 fi
 # Strip /display/<n> suffix to get API base
 API_BASE="${SERVER_URL%/display/*}"
 FALLBACK_URL="file:///opt/kiosk-fallback/offline.html"
 STATE_FILE="/tmp/podium-kiosk-state-${PODIUM}.state"
 LOG_FILE="/tmp/podium-kiosk.log"
+POST_TIMEOUT=5
+POST_RETRIES=3
+POST_RETRY_DELAY=1
 
 # On podium1, wait for local server to come up (max 30s)
 if [ "$PODIUM" = "1" ]; then
@@ -54,13 +57,17 @@ log_msg() {
 record_mode_change() {
   local mode="$1"
   if [ -n "$API_BASE" ]; then
-    if curl -sf --max-time 2 -X POST "$API_BASE/api/kiosk-mode" \
-      -d "pos=$PODIUM" -d "mode=$mode" >/dev/null 2>&1; then
-      log_msg "reported mode=$mode to $API_BASE ok"
-      return 0
-    else
-      log_msg "failed to report mode=$mode to $API_BASE"
-    fi
+    local attempt=1
+    while [ "$attempt" -le "$POST_RETRIES" ]; do
+      if curl -sf --max-time "$POST_TIMEOUT" -X POST "$API_BASE/api/kiosk-mode" \
+        -d "pos=$PODIUM" -d "mode=$mode" >/dev/null 2>&1; then
+        log_msg "reported mode=$mode to $API_BASE ok (attempt $attempt)"
+        return 0
+      fi
+      log_msg "failed to report mode=$mode to $API_BASE (attempt $attempt)"
+      attempt=$((attempt + 1))
+      sleep "$POST_RETRY_DELAY"
+    done
   fi
   return 1
 }
