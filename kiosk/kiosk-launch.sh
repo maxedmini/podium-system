@@ -1,6 +1,21 @@
 #!/bin/bash
 set -e
 
+export DISPLAY=:0
+
+# Wait for X server to be ready
+until xset q >/dev/null 2>&1; do
+  sleep 1
+done
+
+# Disable screen blanking and power saving
+xset s off
+xset s noblank
+xset -dpms
+
+# Hide mouse cursor
+unclutter -idle 0 &
+
 HOST=$(hostname)
 
 case "$HOST" in
@@ -37,4 +52,3 @@ exec /usr/bin/chromium \
   --noerrdialogs \
   --autoplay-policy=no-user-gesture-required \
   "$URL"
-

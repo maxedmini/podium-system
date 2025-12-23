@@ -5,15 +5,9 @@ Wants=graphical.target network-online.target
 
 [Service]
 Type=simple
-User={{USER}}
+User=podium3
 Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/{{USER}}/.Xauthority
-
-ExecStartPre=/bin/sleep 6
-ExecStartPre=/usr/bin/xset s off
-ExecStartPre=/usr/bin/xset s noblank
-ExecStartPre=/usr/bin/xset -dpms
-ExecStartPre=/usr/bin/unclutter -idle 0
+Environment=XAUTHORITY=/home/podium3/.Xauthority
 
 ExecStart=/usr/local/bin/kiosk-launch.sh
 
@@ -22,4 +16,3 @@ RestartSec=5
 
 [Install]
 WantedBy=graphical.target
-
