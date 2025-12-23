@@ -361,6 +361,11 @@ def get_pi_hosts() -> list[str]:
     return hosts
 
 
+def sshpass_path() -> str | None:
+    """Return a usable sshpass path, if available."""
+    return shutil.which("sshpass") or ("/usr/bin/sshpass" if os.path.exists("/usr/bin/sshpass") else None)
+
+
 def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
     """Run a remote command over SSH using configured credentials."""
     user = (config.get("pi_user") or "pi").strip()
@@ -369,10 +374,11 @@ def ssh_run(host: str, remote_cmd: str, timeout: int = 15) -> Tuple[bool, str]:
     password = config.get("pi_password", "").strip()
 
     if password and not key_path:
-        if not shutil.which("sshpass"):
+        sshpass = sshpass_path()
+        if not sshpass:
             return False, "sshpass not installed on server (needed for password auth)"
         cmd = [
-            "sshpass",
+            sshpass,
             "-p",
             password,
             "ssh",
@@ -420,10 +426,11 @@ def scp_copy(host: str, local_path: Path, remote_path: str, timeout: int = 20) -
     password = config.get("pi_password", "").strip()
 
     if password and not key_path:
-        if not shutil.which("sshpass"):
+        sshpass = sshpass_path()
+        if not sshpass:
             return False, "sshpass not installed on server (needed for password auth)"
         cmd = [
-            "sshpass",
+            sshpass,
             "-p",
             password,
             "scp",
