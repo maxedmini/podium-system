@@ -28,15 +28,30 @@ from werkzeug.utils import secure_filename
 # --------------------------------------------------
 
 app = Flask(__name__)
-FALLBACK_DIR = os.path.join(os.path.dirname(__file__), "..", "fallback")
-FALLBACK_DIR = os.path.abspath(FALLBACK_DIR)
+# -------------------------------------------------------------------
+# Fallback asset serving (offline mode for kiosks)
+# -------------------------------------------------------------------
+
+FALLBACK_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "fallback")
+)
 
 @app.route("/assets/fallback/<path:filename>")
-def serve_fallback_asset(filename: str):
-    # Only allow known-safe files to be served
-    if filename not in ("offline.html", "offline.svg", "offline.png", "offline.jpg", "offline.jpeg", "offline.webp"):
+def serve_fallback_asset(filename):
+    allowed_files = {
+        "offline.html",
+        "offline.png",
+    }
+
+    if filename not in allowed_files:
         abort(404)
-    return send_from_directory(FALLBACK_DIR, filename)
+
+    return send_from_directory(
+        FALLBACK_DIR,
+        filename,
+        conditional=True
+    )
+
 
 app.secret_key = "CHANGE_THIS_TO_ANY_RANDOM_STRING"
 
