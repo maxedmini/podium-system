@@ -1457,7 +1457,7 @@ ADMIN_TEMPLATE = """
 }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
-.page { max-width: 1100px; margin: 0 auto; padding: 28px; }
+.page { max-width: 1400px; margin: 0 auto; padding: 28px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 18px; }
 .page-header h1 { margin: 0; display: flex; align-items: center; gap: 0.35rem; font-size: 1.6rem; }
 .subhead { color: var(--muted); margin: 4px 0 0; }
@@ -1486,6 +1486,63 @@ textarea { min-height: 120px; resize: vertical; }
 .field-stack { display: flex; flex-direction: column; gap: 12px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .medal-icon { width: 1.3em; height: 1.3em; vertical-align: -0.2em; margin-right: 0.3em; }
+
+/* Live Preview Styles */
+.preview-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.monitor-background {
+  width: 100%;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.displays-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.display-frame {
+  position: absolute;
+  border: 2px solid #333;
+  pointer-events: auto;
+  background: #000;
+}
+
+/* Adjust these to match your PNG's white rectangles */
+#frame-1 {
+  left: 3.8%;
+  top: 47.3%;
+  width: 21.6%;
+  height: 40%;
+}
+
+#frame-2 {
+  left: 39.2%;
+  top: 30%;
+  width: 21.6%;
+  height: 40%;
+}
+
+#frame-3 {
+  left: 74.6%;
+  top: 47.3%;
+  width: 21.6%;
+  height: 40%;
+}
 </style>
 </head>
 <body>
@@ -1499,6 +1556,28 @@ textarea { min-height: 120px; resize: vertical; }
   </div>
 
   {% if message %}<div class="message"><strong>{{ message }}</strong></div>{% endif %}
+
+  <!-- Live Preview Section -->
+  <div class="section">
+    <h2>Live Display Preview</h2>
+    <p class="small" style="margin-bottom: 10px;">Save your monitor frame PNG as <code>/static/monitor-frame.png</code> or update the image path below.</p>
+    
+    <div class="preview-wrapper">
+      <!-- Background PNG -->
+      <img class="monitor-background" src="/static/monitor-frame.png" alt="Monitor Frames" onerror="this.style.display='none'; document.querySelector('.fallback-msg').style.display='block';">
+      
+      <!-- Overlaid iframes -->
+      <div class="displays-overlay">
+        <iframe class="display-frame" id="frame-1" src="/display/1"></iframe>
+        <iframe class="display-frame" id="frame-2" src="/display/2"></iframe>
+        <iframe class="display-frame" id="frame-3" src="/display/3"></iframe>
+      </div>
+    </div>
+    
+    <div class="fallback-msg" style="display: none; padding: 20px; text-align: center; color: var(--muted);">
+      ⚠️ Monitor frame image not found. Save your PNG as <code>/static/monitor-frame.png</code>
+    </div>
+  </div>
 
   <form method="POST" enctype="multipart/form-data">
     <div class="section">
