@@ -1449,7 +1449,7 @@ setInterval(sendHeartbeat, {{ heartbeat_interval * 1000 }});
 ADMIN_TEMPLATE = """
 <!DOCTYPE html>
 <html>
-<head><title>Podium Admin</title>
+<head><title>OddFox Podium Admin</title>
 <style>
 :root {
   --bg: #f5f7fb;
@@ -1526,12 +1526,42 @@ textarea { min-height: 120px; resize: vertical; }
   background: #000;
 }
 
+.display-status {
+  position: absolute;
+  padding: 6px 10px;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  transform: translateY(6px);
+}
+
+.display-status .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #ff4d4f;
+}
+.display-status.online .dot { background: #2ecc71; }
+.display-status.offline .dot { background: #ff4d4f; }
+.display-status.attention .dot { background: #f39c12; }
+
 /* Adjust these to match your PNG's white rectangles */
 #frame-1 {
   left: 48.514%;
   top: 56.042%;
   width: 13.131%;
   height: 26.669%;
+}
+#status-1 {
+  left: 48.514%;
+  top: 84.5%;
+  width: 13.131%;
 }
 
 #frame-2 {
@@ -1540,12 +1570,22 @@ textarea { min-height: 120px; resize: vertical; }
   width: 13.141%;
   height: 26.669%;
 }
+#status-2 {
+  left: 19.913%;
+  top: 89%;
+  width: 13.141%;
+}
 
 #frame-3 {
   left: 77.053%;
   top: 65.765%;
   width: 13.141%;
   height: 26.635%;
+}
+#status-3 {
+  left: 77.053%;
+  top: 94%;
+  width: 13.141%;
 }
 </style>
 </head>
@@ -1575,6 +1615,10 @@ textarea { min-height: 120px; resize: vertical; }
         <iframe class="display-frame" id="frame-1" src="/display/1?preview=1"></iframe>
         <iframe class="display-frame" id="frame-2" src="/display/2?preview=1"></iframe>
         <iframe class="display-frame" id="frame-3" src="/display/3?preview=1"></iframe>
+
+        <div class="display-status" id="status-1"><span class="dot"></span><span class="label">Loading…</span></div>
+        <div class="display-status" id="status-2"><span class="dot"></span><span class="label">Loading…</span></div>
+        <div class="display-status" id="status-3"><span class="dot"></span><span class="label">Loading…</span></div>
       </div>
     </div>
     
@@ -1820,6 +1864,8 @@ function renderStatusTable(rows) {
       <td>${r.kiosk_last_fallback_minutes ?? 0}</td>
     </tr>
   `).join("");
+
+  renderPreviewStatuses(rows);
 }
 
 async function pollStatus() {
@@ -1879,6 +1925,29 @@ if (restartBtn) {
       restartBtn.textContent = "Restart server";
       alert("Restart failed");
     }
+  });
+}
+
+function renderPreviewStatuses(rows) {
+  const byPos = {};
+  rows.forEach(r => { byPos[r.pos] = r; });
+  [1, 2, 3].forEach(pos => {
+    const el = document.getElementById(`status-${pos}`);
+    if (!el) return;
+    const info = byPos[pos] || {};
+    const label = el.querySelector(".label");
+    const cls = ["display-status"];
+    if (info.needs_attention) {
+      cls.push("attention");
+      label && (label.textContent = info.warning || "Needs attention");
+    } else if (info.online) {
+      cls.push("online");
+      label && (label.textContent = "Online");
+    } else {
+      cls.push("offline");
+      label && (label.textContent = "Offline");
+    }
+    el.className = cls.join(" ");
   });
 }
 </script>
