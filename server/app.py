@@ -1521,7 +1521,7 @@ textarea { min-height: 120px; resize: vertical; }
 
 .display-frame {
   position: absolute;
-  border: 2px solid #333;
+  border: none;
   pointer-events: auto;
   background: #000;
 }
@@ -1553,39 +1553,39 @@ textarea { min-height: 120px; resize: vertical; }
 
 /* Adjust these to match your PNG's white rectangles */
 #frame-1 {
-  left: 42.510%;
-  top: 36.611%;
-  width: 15.038%;
-  height: 40.560%;
+  left: 42.200%;
+  top: 36.300%;
+  width: 15.700%;
+  height: 41.300%;
 }
 #status-1 {
-  left: 42.657%;
-  bottom: 4%;
-  width: 14.743%;
+  left: 42.200%;
+  bottom: 2.5%;
+  width: 15.700%;
 }
 
 #frame-2 {
-  left: 10.397%;
-  top: 43.860%;
-  width: 15.049%;
-  height: 40.508%;
+  left: 10.050%;
+  top: 43.500%;
+  width: 15.700%;
+  height: 41.200%;
 }
 #status-2 {
-  left: 10.545%;
-  bottom: 4%;
-  width: 14.754%;
+  left: 10.050%;
+  bottom: 2.5%;
+  width: 15.700%;
 }
 
 #frame-3 {
-  left: 74.552%;
-  top: 51.057%;
-  width: 15.049%;
-  height: 40.560%;
+  left: 74.200%;
+  top: 50.700%;
+  width: 15.700%;
+  height: 41.300%;
 }
 #status-3 {
-  left: 74.700%;
-  bottom: 4%;
-  width: 14.754%;
+  left: 74.200%;
+  bottom: 2.5%;
+  width: 15.700%;
 }
 </style>
 </head>
