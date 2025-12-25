@@ -1498,7 +1498,7 @@ textarea { min-height: 120px; resize: vertical; }
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
-  aspect-ratio: 9923 / 2921; /* match monitor-frame.png to keep overlay locked */
+  aspect-ratio: 8838 / 2599; /* match monitor-frame.png to keep overlay locked */
 }
 
 .monitor-background {
@@ -1553,39 +1553,39 @@ textarea { min-height: 120px; resize: vertical; }
 
 /* Adjust these to match your PNG's white rectangles */
 #frame-1 {
-  left: 48.514%;
-  top: 56.042%;
-  width: 13.131%;
-  height: 26.669%;
+  left: 42.657%;
+  top: 27.895%;
+  width: 14.743%;
+  height: 29.973%;
 }
 #status-1 {
-  left: 48.514%;
-  top: 84.5%;
-  width: 13.131%;
+  left: 42.657%;
+  top: 60%;
+  width: 14.743%;
 }
 
 #frame-2 {
-  left: 19.913%;
-  top: 60.904%;
-  width: 13.141%;
-  height: 26.669%;
+  left: 10.545%;
+  top: 33.359%;
+  width: 14.754%;
+  height: 29.935%;
 }
 #status-2 {
-  left: 19.913%;
-  top: 89%;
-  width: 13.141%;
+  left: 10.545%;
+  top: 66%;
+  width: 14.754%;
 }
 
 #frame-3 {
-  left: 77.053%;
-  top: 65.765%;
-  width: 13.141%;
-  height: 26.635%;
+  left: 74.700%;
+  top: 38.784%;
+  width: 14.754%;
+  height: 29.973%;
 }
 #status-3 {
-  left: 77.053%;
-  top: 94%;
-  width: 13.141%;
+  left: 74.700%;
+  top: 72%;
+  width: 14.754%;
 }
 </style>
 </head>
