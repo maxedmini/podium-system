@@ -1492,7 +1492,7 @@ textarea { min-height: 120px; resize: vertical; }
   position: relative;
   width: 100%;
   min-height: 400px;
-  background: #000;
+  background: #fff;
   border-radius: 8px;
   overflow: hidden;
 }
