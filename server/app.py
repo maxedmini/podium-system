@@ -1560,7 +1560,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-1 {
   left: 42.657%;
-  top: 60%;
+  bottom: 4%;
   width: 14.743%;
 }
 
@@ -1572,7 +1572,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-2 {
   left: 10.545%;
-  top: 66%;
+  bottom: 4%;
   width: 14.754%;
 }
 
@@ -1584,7 +1584,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-3 {
   left: 74.700%;
-  top: 72%;
+  bottom: 4%;
   width: 14.754%;
 }
 </style>
