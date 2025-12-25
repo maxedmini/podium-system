@@ -1349,8 +1349,10 @@ function sendHeartbeat() {
     }),
   }).catch(() => {});
 }
+{% if heartbeat_interval %}
 sendHeartbeat();
 setInterval(sendHeartbeat, {{ heartbeat_interval * 1000 }});
+{% endif %}
 </script>
 </body>
 </html>
@@ -1435,8 +1437,10 @@ function sendHeartbeat() {
     }),
   }).catch(() => {});
 }
+{% if heartbeat_interval %}
 sendHeartbeat();
-setInterval(sendHeartbeat, 10000);
+setInterval(sendHeartbeat, {{ heartbeat_interval * 1000 }});
+{% endif %}
 </script>
 </body>
 </html>
@@ -1568,9 +1572,9 @@ textarea { min-height: 120px; resize: vertical; }
       
       <!-- Overlaid iframes -->
       <div class="displays-overlay">
-        <iframe class="display-frame" id="frame-1" src="/display/1"></iframe>
-        <iframe class="display-frame" id="frame-2" src="/display/2"></iframe>
-        <iframe class="display-frame" id="frame-3" src="/display/3"></iframe>
+        <iframe class="display-frame" id="frame-1" src="/display/1?preview=1"></iframe>
+        <iframe class="display-frame" id="frame-2" src="/display/2?preview=1"></iframe>
+        <iframe class="display-frame" id="frame-3" src="/display/3?preview=1"></iframe>
       </div>
     </div>
     
@@ -2003,6 +2007,9 @@ def display(pos):
     if pos not in (1, 2, 3):
         abort(404)
 
+    preview_mode = str(request.args.get("preview", "")).lower() in {"1", "true", "yes", "on"}
+    heartbeat_interval = 0 if preview_mode else HEARTBEAT_INTERVAL
+
     data, _ = get_podium_data()
     key = {1: "first", 2: "second", 3: "third"}[pos]
     athlete = data[key] if data else {}
@@ -2042,6 +2049,8 @@ def display(pos):
                 screensaver_enabled=screensaver_enabled,
                 screensaver_timeout=screensaver_timeout,
                 idle_for=idle_for_effective,
+                heartbeat_interval=heartbeat_interval,
+                pos=pos,
             )
 
         return render_template_string(
@@ -2086,8 +2095,10 @@ def display(pos):
                 }),
               }).catch(() => {});
             }
+            {% if heartbeat_interval %}
             sendHeartbeat();
             setInterval(sendHeartbeat, {{ heartbeat_interval * 1000 }});
+            {% endif %}
             </script>
             </body>
             </html>
@@ -2098,7 +2109,7 @@ def display(pos):
             screensaver_enabled=screensaver_enabled,
             screensaver_timeout=screensaver_timeout,
             idle_for=idle_for_effective,
-            heartbeat_interval=HEARTBEAT_INTERVAL,
+            heartbeat_interval=heartbeat_interval,
             pos=pos,
             position=position_label,
         )
@@ -2117,7 +2128,7 @@ def display(pos):
             screensaver_enabled=screensaver_enabled,
             screensaver_timeout=screensaver_timeout,
             idle_for=idle_for_effective,
-            heartbeat_interval=HEARTBEAT_INTERVAL,
+            heartbeat_interval=heartbeat_interval,
             pos=pos,
         )
 
@@ -2145,7 +2156,7 @@ def display(pos):
         screensaver_enabled=screensaver_enabled,
         screensaver_timeout=screensaver_timeout,
         idle_for=idle_for_effective,
-        heartbeat_interval=HEARTBEAT_INTERVAL,
+        heartbeat_interval=heartbeat_interval,
         pos=pos,
     )
 
