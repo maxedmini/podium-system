@@ -113,6 +113,12 @@ if [ "$HOST" = "podium1" ]; then
   pip install --upgrade pip
   pip install -r requirements.txt
 
+  # Sync static assets for the Flask server (kept outside the repo for durability)
+  STATIC_DST="/opt/podium-server/static"
+  sudo mkdir -p "$STATIC_DST"
+  sudo rsync -a --delete "$REPO_DIR/server/static/" "$STATIC_DST/"
+  sudo chown -R "$USER:$USER" "$STATIC_DST"
+
   sudo tee /etc/systemd/system/podium-server.service >/dev/null <<EOF
 [Unit]
 Description=Podium Flask Server
