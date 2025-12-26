@@ -1498,7 +1498,6 @@ textarea { min-height: 120px; resize: vertical; }
   background: #fff;
   border-radius: 8px;
   overflow: visible; /* allow status chips to sit just below */
-  padding-bottom: 80px; /* space for status chips */
   aspect-ratio: 8838 / 1959; /* match monitor-frame.png to keep overlay locked */
 }
 
@@ -1543,9 +1542,9 @@ textarea { min-height: 120px; resize: vertical; }
 .status-layer {
   position: absolute;
   left: 0;
-  bottom: 0;
+  bottom: -32px; /* tuck under the frame without overlapping */
   width: 100%;
-  height: 80px;
+  height: 64px;
   pointer-events: none;
 }
 
@@ -1563,39 +1562,39 @@ textarea { min-height: 120px; resize: vertical; }
 
 /* Adjust these to match your PNG's white rectangles */
 #frame-1 {
-  left: 42.050%;
-  top: 36.100%;
-  width: 16.300%;
-  height: 42.000%;
+  left: 42.357%;
+  top: 36.509%;
+  width: 15.743%;
+  height: 40.765%;
 }
 #status-1 {
-  left: 42.050%;
-  bottom: 10px;
-  width: 16.300%;
+  left: 42.357%;
+  bottom: 8px;
+  width: 15.743%;
 }
 
 #frame-2 {
-  left: 9.900%;
-  top: 43.200%;
-  width: 16.300%;
-  height: 42.000%;
+  left: 10.245%;
+  top: 43.757%;
+  width: 15.754%;
+  height: 40.714%;
 }
 #status-2 {
-  left: 9.900%;
-  bottom: 10px;
-  width: 16.300%;
+  left: 10.245%;
+  bottom: 8px;
+  width: 15.754%;
 }
 
 #frame-3 {
-  left: 74.050%;
-  top: 50.500%;
-  width: 16.300%;
-  height: 42.000%;
+  left: 74.400%;
+  top: 50.955%;
+  width: 15.754%;
+  height: 40.765%;
 }
 #status-3 {
-  left: 74.050%;
-  bottom: 10px;
-  width: 16.300%;
+  left: 74.400%;
+  bottom: 8px;
+  width: 15.754%;
 }
 </style>
 </head>
