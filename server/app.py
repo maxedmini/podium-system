@@ -1497,7 +1497,8 @@ textarea { min-height: 120px; resize: vertical; }
   width: 100%;
   background: #fff;
   border-radius: 8px;
-  overflow: visible; /* allow status chips to sit just below */
+  overflow: hidden;
+  padding-bottom: 70px; /* space for status chips */
   aspect-ratio: 8838 / 1959; /* match monitor-frame.png to keep overlay locked */
 }
 
@@ -1553,39 +1554,39 @@ textarea { min-height: 120px; resize: vertical; }
 
 /* Adjust these to match your PNG's white rectangles */
 #frame-1 {
-  left: 42.200%;
-  top: 36.300%;
-  width: 15.700%;
-  height: 41.300%;
+  left: 42.050%;
+  top: 36.100%;
+  width: 16.200%;
+  height: 41.700%;
 }
 #status-1 {
-  left: 42.200%;
-  bottom: -10%;
-  width: 15.700%;
+  left: 42.050%;
+  bottom: 10px;
+  width: 16.200%;
 }
 
 #frame-2 {
-  left: 10.050%;
-  top: 43.500%;
-  width: 15.700%;
-  height: 41.200%;
+  left: 9.900%;
+  top: 43.200%;
+  width: 16.200%;
+  height: 41.600%;
 }
 #status-2 {
-  left: 10.050%;
-  bottom: -10%;
-  width: 15.700%;
+  left: 9.900%;
+  bottom: 10px;
+  width: 16.200%;
 }
 
 #frame-3 {
-  left: 74.200%;
-  top: 50.700%;
-  width: 15.700%;
-  height: 41.300%;
+  left: 74.050%;
+  top: 50.500%;
+  width: 16.200%;
+  height: 41.700%;
 }
 #status-3 {
-  left: 74.200%;
-  bottom: -10%;
-  width: 15.700%;
+  left: 74.050%;
+  bottom: 10px;
+  width: 16.200%;
 }
 </style>
 </head>
