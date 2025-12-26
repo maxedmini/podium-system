@@ -1493,13 +1493,20 @@ textarea { min-height: 120px; resize: vertical; }
 
 /* Live Preview Styles */
 .preview-wrapper {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
   background: #fff;
   border-radius: 8px;
-  overflow: hidden;
-  padding-bottom: 70px; /* reserve space for status chips */
+  overflow: visible;
+}
+
+.frame-area {
+  position: relative;
+  width: 100%;
   aspect-ratio: 8838 / 1959; /* match monitor-frame.png to keep overlay locked */
+  overflow: hidden;
 }
 
 .monitor-background {
@@ -1515,7 +1522,7 @@ textarea { min-height: 120px; resize: vertical; }
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 70px); /* leave room for status chips */
+  height: 100%;
   z-index: 2;
   pointer-events: none;
 }
@@ -1537,13 +1544,12 @@ textarea { min-height: 120px; resize: vertical; }
   text-align: center;
   pointer-events: none;
   border: 1px solid rgba(255,255,255,0.12);
-  transform: translateY(6px);
+  top: 8px;
 }
 
 .status-layer {
-  position: absolute;
-  left: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
   width: 100%;
   height: 70px;
   pointer-events: none;
@@ -1570,7 +1576,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-1 {
   left: 42.357%;
-  bottom: 8px;
+  top: 8px;
   width: 15.743%;
 }
 
@@ -1582,7 +1588,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-2 {
   left: 10.245%;
-  bottom: 8px;
+  top: 8px;
   width: 15.754%;
 }
 
@@ -1594,7 +1600,7 @@ textarea { min-height: 120px; resize: vertical; }
 }
 #status-3 {
   left: 74.400%;
-  bottom: 8px;
+  top: 8px;
   width: 15.754%;
 }
 </style>
@@ -1617,14 +1623,16 @@ textarea { min-height: 120px; resize: vertical; }
     <p class="small" style="margin-bottom: 10px;">Save your monitor frame PNG as <code>/static/monitor-frame.png</code> or update the image path below.</p>
     
     <div class="preview-wrapper">
-      <!-- Background PNG -->
-      <img class="monitor-background" src="/static/monitor-frame.png" alt="Monitor Frames" onerror="this.style.display='none'; document.querySelector('.fallback-msg').style.display='block';">
-      
-      <!-- Overlaid iframes -->
-      <div class="displays-overlay">
-        <iframe class="display-frame" id="frame-1" src="/display/1?preview=1"></iframe>
-        <iframe class="display-frame" id="frame-2" src="/display/2?preview=1"></iframe>
-        <iframe class="display-frame" id="frame-3" src="/display/3?preview=1"></iframe>
+      <div class="frame-area">
+        <!-- Background PNG -->
+        <img class="monitor-background" src="/static/monitor-frame.png" alt="Monitor Frames" onerror="this.style.display='none'; document.querySelector('.fallback-msg').style.display='block';">
+        
+        <!-- Overlaid iframes -->
+        <div class="displays-overlay">
+          <iframe class="display-frame" id="frame-1" src="/display/1?preview=1"></iframe>
+          <iframe class="display-frame" id="frame-2" src="/display/2?preview=1"></iframe>
+          <iframe class="display-frame" id="frame-3" src="/display/3?preview=1"></iframe>
+        </div>
       </div>
 
       <div class="status-layer">
