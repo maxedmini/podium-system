@@ -1497,8 +1497,8 @@ textarea { min-height: 120px; resize: vertical; }
   width: 100%;
   background: #fff;
   border-radius: 8px;
-  overflow: hidden;
-  padding-bottom: 70px; /* space for status chips */
+  overflow: visible; /* allow status chips to sit just below */
+  padding-bottom: 80px; /* space for status chips */
   aspect-ratio: 8838 / 1959; /* match monitor-frame.png to keep overlay locked */
 }
 
@@ -1515,7 +1515,7 @@ textarea { min-height: 120px; resize: vertical; }
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 70px); /* leave room for status chips */
+  height: 100%;
   z-index: 2;
   pointer-events: none;
 }
@@ -1545,7 +1545,7 @@ textarea { min-height: 120px; resize: vertical; }
   left: 0;
   bottom: 0;
   width: 100%;
-  height: 70px;
+  height: 80px;
   pointer-events: none;
 }
 
@@ -1565,37 +1565,37 @@ textarea { min-height: 120px; resize: vertical; }
 #frame-1 {
   left: 42.050%;
   top: 36.100%;
-  width: 16.200%;
-  height: 41.700%;
+  width: 16.300%;
+  height: 42.000%;
 }
 #status-1 {
   left: 42.050%;
   bottom: 10px;
-  width: 16.200%;
+  width: 16.300%;
 }
 
 #frame-2 {
   left: 9.900%;
   top: 43.200%;
-  width: 16.200%;
-  height: 41.600%;
+  width: 16.300%;
+  height: 42.000%;
 }
 #status-2 {
   left: 9.900%;
   bottom: 10px;
-  width: 16.200%;
+  width: 16.300%;
 }
 
 #frame-3 {
   left: 74.050%;
   top: 50.500%;
-  width: 16.200%;
-  height: 41.700%;
+  width: 16.300%;
+  height: 42.000%;
 }
 #status-3 {
   left: 74.050%;
   bottom: 10px;
-  width: 16.200%;
+  width: 16.300%;
 }
 </style>
 </head>
