@@ -1515,7 +1515,7 @@ textarea { min-height: 120px; resize: vertical; }
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 70px); /* leave room for status chips */
   z-index: 2;
   pointer-events: none;
 }
@@ -1538,6 +1538,15 @@ textarea { min-height: 120px; resize: vertical; }
   pointer-events: none;
   border: 1px solid rgba(255,255,255,0.12);
   transform: translateY(6px);
+}
+
+.status-layer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 70px;
+  pointer-events: none;
 }
 
 .display-status .dot {
@@ -1616,7 +1625,9 @@ textarea { min-height: 120px; resize: vertical; }
         <iframe class="display-frame" id="frame-1" src="/display/1?preview=1"></iframe>
         <iframe class="display-frame" id="frame-2" src="/display/2?preview=1"></iframe>
         <iframe class="display-frame" id="frame-3" src="/display/3?preview=1"></iframe>
+      </div>
 
+      <div class="status-layer">
         <div class="display-status" id="status-1"><span class="dot"></span><span class="label">Loading…</span></div>
         <div class="display-status" id="status-2"><span class="dot"></span><span class="label">Loading…</span></div>
         <div class="display-status" id="status-3"><span class="dot"></span><span class="label">Loading…</span></div>
