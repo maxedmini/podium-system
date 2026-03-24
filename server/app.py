@@ -199,9 +199,32 @@ def record_name_changes(prev_data: Dict[str, Any] | None, new_data: Dict[str, An
     """Track when each podium name last changed to drive the screensaver."""
     global name_change_version
     changed = False
+
+    def slot_signature(data: Dict[str, Any] | None, slot: str) -> tuple[str, ...] | None:
+        slot_data = (data or {}).get(slot, {})
+        if not isinstance(slot_data, dict):
+            return None
+
+        entries = slot_data.get("entries")
+        if isinstance(entries, list):
+            names = tuple(
+                entry.get("name", "").strip()
+                for entry in entries
+                if isinstance(entry, dict) and entry.get("name", "").strip()
+            )
+            if names:
+                return names
+
+        name = slot_data.get("name")
+        if isinstance(name, str):
+            stripped = name.strip()
+            if stripped:
+                return (stripped,)
+        return None
+
     for slot in ("first", "second", "third"):
-        prev_name = (prev_data or {}).get(slot, {}).get("name", None)
-        new_name = new_data.get(slot, {}).get("name", "")
+        prev_name = slot_signature(prev_data, slot)
+        new_name = slot_signature(new_data, slot)
 
         if not new_name and not prev_name:
             continue
@@ -821,7 +844,15 @@ def compute_display_view(pos: int, data: Dict[str, Any] | None) -> Dict[str, Any
     now = time.time()
     key = {1: "first", 2: "second", 3: "third"}[pos]
     athlete = data.get(key, {}) if data else {}
-    name = athlete.get("name", "") if isinstance(athlete, dict) else ""
+    entries = athlete.get("entries", []) if isinstance(athlete, dict) else []
+    if entries:
+        name = " / ".join(
+            entry.get("name", "").strip()
+            for entry in entries
+            if isinstance(entry, dict) and entry.get("name", "").strip()
+        )
+    else:
+        name = athlete.get("name", "") if isinstance(athlete, dict) else ""
 
     slot_change = name_change_times.get(key, 0.0)
     slot_ref = slot_change or podium_cache.get("fetched_at", 0.0) or now
@@ -992,11 +1023,7 @@ def scrape_podium(url: str, cookies: Dict[str, str]) -> Dict[str, Any]:
     category_el = podium.select_one("h1")
     category = category_el.get_text(strip=True) if category_el else "Podium"
 
-    def extract(place: str):
-        item = podium.select_one(f"article.item.{place}") or podium.select_one(f".item.{place}")
-        if not item:
-            return {"name": "", "club": "", "country": ""}
-
+    def parse_item(item):
         # ---- NAME (OddFox layout) ----
         name = ""
         h4 = item.select_one("h4")
@@ -1037,6 +1064,35 @@ def scrape_podium(url: str, cookies: Dict[str, str]) -> Dict[str, Any]:
             "name": name,
             "club": club,
             "country": country,
+        }
+
+    def extract(place: str):
+        items = podium.select(f"article.item.{place}, .item.{place}")
+        entries = []
+        seen = set()
+
+        for item in items:
+            athlete = parse_item(item)
+            signature = (
+                athlete.get("name", "").strip(),
+                athlete.get("club", "").strip(),
+                athlete.get("country", "").strip(),
+            )
+            if not signature[0] or signature in seen:
+                continue
+            seen.add(signature)
+            entries.append(athlete)
+
+        first_entry = entries[0] if entries else {"name": "", "club": "", "country": ""}
+        display_name = " / ".join(
+            entry["name"] for entry in entries if entry.get("name", "").strip()
+        )
+
+        return {
+            "name": display_name,
+            "club": first_entry.get("club", "") if len(entries) == 1 else "",
+            "country": first_entry.get("country", "") if len(entries) == 1 else "",
+            "entries": entries,
         }
 
 
@@ -1206,22 +1262,70 @@ body {
   50% { box-shadow: 0 0 80px {{ glow }}; }
 }
 
-.name-row { 
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+.entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+.name-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2rem;
   white-space: nowrap;
 }
-.name { 
+.name {
   font-size: 7.5rem;
-  font-weight: 900; 
+  font-weight: 900;
   line-height: 1.15;
 }
-.club { 
+.club {
   font-size: 3.5rem;
-  opacity: .85; 
-  margin-top: 1rem;
+  opacity: .85;
   text-align: center;
+}
+
+.card.multi .name {
+  font-size: 5.2rem;
+}
+
+.card.multi .club {
+  font-size: 2.2rem;
+}
+
+.card.multi .flag img {
+  width: 4rem;
+}
+
+.card.multi {
+  padding: 2.2rem 2.8rem;
+}
+
+.card.multi .entry-list {
+  gap: 1.6rem;
+}
+
+.card.multi .name-row {
+  gap: 1.2rem;
+}
+
+.divider {
+  height: 2px;
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+}
+
+.card.multi + .category,
+.container.multi-place .category {
+  margin-top: 2.2rem;
+  margin-bottom: 9.5rem;
+  font-size: 3.7rem;
 }
 
 .flag img {
@@ -1260,11 +1364,19 @@ body {
   height: auto;
   display: block;
 }
+
+#stage.multi-place .logo {
+  bottom: 0.6rem;
+}
+
+#stage.multi-place .logo img {
+  max-width: 20rem;
+}
 </style>
 </head>
 <body>
-<div id="stage">
-  <div class="container">
+<div id="stage"{% if entries|length > 1 %} class="multi-place"{% endif %}>
+  <div class="container{% if entries|length > 1 %} multi-place{% endif %}">
     <div class="header-row">
       <div class="position-wrap">
         <div class="position">{{ position }}</div>
@@ -1275,17 +1387,24 @@ body {
     </div>
 
     <div class="card-wrapper">
-      <div class="card">
-        <div class="name-row">
-          <div class="name">{{ name }}</div>
-          {% if country %}
-          <div class="flag">
-            <img src="/static/flags/{{ country }}.svg"
-                 onerror="this.src='/static/flags/gb.svg'">
+      <div class="card{% if entries|length > 1 %} multi{% endif %}">
+        <div class="entry-list">
+          {% for entry in entries %}
+          <div class="entry">
+            <div class="name-row">
+              <div class="name">{{ entry.name }}</div>
+              {% if entry.country %}
+              <div class="flag">
+                <img src="/static/flags/{{ entry.country }}.svg"
+                     onerror="this.src='/static/flags/gb.svg'">
+              </div>
+              {% endif %}
+            </div>
+            {% if entry.club %}<div class="club">{{ entry.club }}</div>{% endif %}
           </div>
-          {% endif %}
+          {% if not loop.last %}<div class="divider"></div>{% endif %}
+          {% endfor %}
         </div>
-        {% if club %}<div class="club">{{ club }}</div>{% endif %}
       </div>
     </div>
 
@@ -2102,6 +2221,7 @@ def display(pos):
     data, _ = get_podium_data()
     key = {1: "first", 2: "second", 3: "third"}[pos]
     athlete = data[key] if data else {}
+    entries = athlete.get("entries", []) if isinstance(athlete, dict) else []
     position_label = {1: "1st", 2: "2nd", 3: "3rd"}[pos]
 
     now = time.time()
@@ -2119,7 +2239,7 @@ def display(pos):
     except Exception:
         screensaver_timeout = SCREENSAVER_TIMEOUT
 
-    no_name_missing = pos in (2, 3) and not athlete.get("name")
+    no_name_missing = pos in (2, 3) and not entries
     shared_screensaver = data and screensaver_enabled and idle_for_first >= screensaver_timeout
     idle_for_effective = idle_for_first if shared_screensaver else idle_for_slot
 
@@ -2234,9 +2354,11 @@ def display(pos):
         medal_src={1: "/static/logo/1.svg", 2: "/static/logo/2.svg", 3: "/static/logo/3.svg"}[pos],
         accent=accent,
         glow=glow,
-        name=athlete.get("name", "Loading…"),
-        club=athlete.get("club", ""),
-        country=athlete.get("country", ""),
+        entries=entries or [{
+            "name": athlete.get("name", "Loading…"),
+            "club": athlete.get("club", ""),
+            "country": athlete.get("country", ""),
+        }],
         category=data["category"] if data else "Loading…",
         updated=config.get("last_updated", "Never"),
         refresh=config.get("refresh_interval", 30),
