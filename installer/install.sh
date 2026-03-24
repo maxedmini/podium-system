@@ -1,36 +1,58 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-USER=$(whoami)
-HOST=$(hostname)
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+  INSTALL_USER="${SUDO_USER:-${PODIUM_USER:-event}}"
+else
+  INSTALL_USER="$(whoami)"
+fi
 
-case "$HOST" in
-  podium1)
-    PODIUM=1
-    KIOSK_USER=podium1
-    ;;
-  podium2)
-    PODIUM=2
-    KIOSK_USER=podium2
-    ;;
-  podium3)
-    PODIUM=3
-    KIOSK_USER=podium3
+HOME_DIR="$(getent passwd "$INSTALL_USER" | cut -d: -f6 2>/dev/null || true)"
+if [ -z "$HOME_DIR" ]; then
+  HOME_DIR="/home/$INSTALL_USER"
+fi
+
+CONFIG_FILE="${PODIUM_CONFIG_FILE:-/etc/default/podium-kiosk}"
+if [ -f "$CONFIG_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+
+HOST="${HOSTNAME_OVERRIDE:-$(hostname)}"
+PODIUM="${PODIUM:-${DISPLAY_ID:-}}"
+KIOSK_USER="${KIOSK_USER:-$INSTALL_USER}"
+SERVER_HOST="${SERVER_HOST:-podium-1.local}"
+SERVER_PORT="${SERVER_PORT:-5001}"
+SERVER_URL="${SERVER_URL:-}"
+REPO_URL="${REPO_URL:-https://github.com/maxedmini/podium-system.git}"
+BRANCH="${BRANCH:-main}"
+REPO_DIR="${REPO_DIR:-$HOME_DIR/podium-system}"
+
+if [ -z "${PODIUM}" ]; then
+  echo "❌ PODIUM/DISPLAY_ID is not set in $CONFIG_FILE"
+  exit 1
+fi
+
+case "$PODIUM" in
+  1|2|3)
     ;;
   *)
-    echo "❌ Unknown hostname: $HOST"
+    echo "❌ Invalid PODIUM value: $PODIUM"
     exit 1
     ;;
 esac
 
-REPO_DIR="$HOME/podium-system"
-REPO_URL="https://github.com/maxedmini/podium-system.git"
-BRANCH="main"
+if [ -z "$SERVER_URL" ]; then
+  SERVER_URL="http://${SERVER_HOST}:${SERVER_PORT}/display/${PODIUM}"
+fi
 
 echo "=== Podium installer ==="
 echo "Host: $HOST"
-echo "User: $USER"
+echo "Install user: $INSTALL_USER"
+echo "Kiosk user: $KIOSK_USER"
 echo "Podium: $PODIUM"
+echo "Repo: $REPO_URL ($BRANCH)"
+echo "Server URL: $SERVER_URL"
 
 # Packages
 sudo apt update
@@ -48,12 +70,22 @@ else
   git reset --hard "origin/$BRANCH"
 fi
 
-# Write podium number (single source of truth)
-echo "PODIUM=$PODIUM" | sudo tee /etc/default/podium-kiosk >/dev/null
+sudo mkdir -p "$(dirname "$CONFIG_FILE")"
+sudo tee "$CONFIG_FILE" >/dev/null <<EOF
+PODIUM=$PODIUM
+DISPLAY_ID=$PODIUM
+KIOSK_USER=$KIOSK_USER
+SERVER_HOST=$SERVER_HOST
+SERVER_PORT=$SERVER_PORT
+SERVER_URL=$SERVER_URL
+REPO_URL=$REPO_URL
+BRANCH=$BRANCH
+REPO_DIR=$REPO_DIR
+EOF
 
 # Offline fallback
 sudo mkdir -p /opt/kiosk-fallback
-sudo chown "$USER:$USER" /opt/kiosk-fallback
+sudo chown "$INSTALL_USER:$INSTALL_USER" /opt/kiosk-fallback
 
 cat > /opt/kiosk-fallback/offline.html <<'EOF'
 <!DOCTYPE html>
@@ -102,7 +134,7 @@ sudo systemctl enable kiosk
 sudo systemctl restart kiosk
 
 # Server only on podium1
-if [ "$HOST" = "podium1" ]; then
+if [ "$PODIUM" = "1" ]; then
   cd "$REPO_DIR/server"
 
   if [ ! -d venv ]; then
@@ -117,7 +149,7 @@ if [ "$HOST" = "podium1" ]; then
   STATIC_DST="/opt/podium-server/static"
   sudo mkdir -p "$STATIC_DST"
   sudo rsync -a --delete "$REPO_DIR/server/static/" "$STATIC_DST/"
-  sudo chown -R "$USER:$USER" "$STATIC_DST"
+  sudo chown -R "$INSTALL_USER:$INSTALL_USER" "$STATIC_DST"
 
   sudo tee /etc/systemd/system/podium-server.service >/dev/null <<EOF
 [Unit]
@@ -125,7 +157,7 @@ Description=Podium Flask Server
 After=network-online.target
 
 [Service]
-User=$USER
+User=$INSTALL_USER
 WorkingDirectory=$REPO_DIR/server
 Environment=PATH=$REPO_DIR/server/venv/bin
 ExecStart=$REPO_DIR/server/venv/bin/python app.py
@@ -139,6 +171,8 @@ EOF
   sudo systemctl daemon-reload
   sudo systemctl enable podium-server
   sudo systemctl restart podium-server
+else
+  sudo systemctl disable --now podium-server >/dev/null 2>&1 || true
 fi
 
 echo "=== Installation complete. Reboot recommended. ==="
