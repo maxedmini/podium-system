@@ -115,8 +115,11 @@ while true; do
     URL="$FALLBACK_URL"
   fi
 
-  # Only relaunch Chromium if mode changed
-  if [ "$DESIRED_MODE" != "$CURRENT_MODE" ]; then
+  # Relaunch Chromium if mode changed or if it's no longer running
+  CHROMIUM_RUNNING=0
+  pgrep -f chromium >/dev/null 2>&1 && CHROMIUM_RUNNING=1
+
+  if [ "$DESIRED_MODE" != "$CURRENT_MODE" ] || [ "$CHROMIUM_RUNNING" = "0" ]; then
     # Tell server about mode change; if offline, persist and retry on next loop.
     if record_mode_change "$DESIRED_MODE"; then
       rm -f "$STATE_FILE"

@@ -16,7 +16,7 @@ Use the same Raspberry Pi Imager settings every time unless noted below.
 
 - OS: `Raspberry Pi OS with desktop`
 - Username: `event`
-- Password: choose one fixed password and use it on all cards
+- Password: `event`
 - Configure Wi-Fi: `On`
 - Wi-Fi SSID/password: set these if the Pi needs Wi-Fi on first boot
 - Locale/timezone/keyboard: set as normal for your event setup
@@ -25,9 +25,9 @@ Use the same Raspberry Pi Imager settings every time unless noted below.
 
 - Enable SSH: `On` if you want remote access later
 - Hostname:
-  - display 1 card: `podium-1`
-  - display 2 card: `podium-2`
-  - display 3 card: `podium-3`
+  - display 1 card: `podium1`
+  - display 2 card: `podium2`
+  - display 3 card: `podium3`
 
 ### Important notes
 
@@ -42,27 +42,27 @@ Use these values when preparing cards:
 
 ### Display 1
 
-- Pi Imager hostname: `podium-1`
+- Pi Imager hostname: `podium1`
 - SD prep display number: `1`
 - SD prep Pi username: `event`
-- SD prep Pi hostname: `podium-1`
-- SD prep server hostname: `podium-1.local`
+- SD prep Pi hostname: `podium1`
+- SD prep server hostname: `podium1.local`
 
 ### Display 2
 
-- Pi Imager hostname: `podium-2`
+- Pi Imager hostname: `podium2`
 - SD prep display number: `2`
 - SD prep Pi username: `event`
-- SD prep Pi hostname: `podium-2`
-- SD prep server hostname: `podium-1.local`
+- SD prep Pi hostname: `podium2`
+- SD prep server hostname: `podium1.local`
 
 ### Display 3
 
-- Pi Imager hostname: `podium-3`
+- Pi Imager hostname: `podium3`
 - SD prep display number: `3`
 - SD prep Pi username: `event`
-- SD prep Pi hostname: `podium-3`
-- SD prep server hostname: `podium-1.local`
+- SD prep Pi hostname: `podium3`
+- SD prep server hostname: `podium1.local`
 
 ## Prepare a Card From macOS
 
@@ -70,15 +70,15 @@ After flashing the card and letting the boot partition mount:
 
 ```bash
 cd installer
-./prepare_sd_card.sh --display 1 --pi-username event --hostname podium-1 --eject
+./prepare_sd_card.sh --display 1 --pi-username event --hostname podium1 --eject
 ```
 
 Examples:
 
 ```bash
-./prepare_sd_card.sh --display 1 --pi-username event --hostname podium-1 --server-host podium-1.local --eject
-./prepare_sd_card.sh --display 2 --pi-username event --hostname podium-2 --server-host podium-1.local --eject
-./prepare_sd_card.sh --display 3 --pi-username event --hostname podium-3 --server-host podium-1.local --eject
+./prepare_sd_card.sh --display 1 --pi-username event --hostname podium1 --server-host podium1.local --eject
+./prepare_sd_card.sh --display 2 --pi-username event --hostname podium2 --server-host podium1.local --eject
+./prepare_sd_card.sh --display 3 --pi-username event --hostname podium3 --server-host podium1.local --eject
 ```
 
 What this script writes to the SD card boot partition:
@@ -131,8 +131,8 @@ Important values:
 
 - `DISPLAY_ID=1|2|3`
 - `PI_USERNAME=event`
-- `PI_HOSTNAME=podium-1`
-- `SERVER_HOST=podium-1.local`
-- `SERVER_URL=http://podium-1.local:5001/display/1`
+- `PI_HOSTNAME=podium1`
+- `SERVER_HOST=podium1.local`
+- `SERVER_URL=http://podium1.local:5001/display/1`
 
 Display 1 installs both kiosk and server. Displays 2 and 3 install kiosk only.
