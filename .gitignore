@@ -1,2 +1,11 @@
 .DS_Store
 
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime settings and stats written by the podium server
+server/podium_config.json
+server/podium_stats.json
